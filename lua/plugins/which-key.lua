@@ -2,11 +2,11 @@
 
 return {
   "folke/which-key.nvim",
+  event = "VeryLazy",
   opts = {
-    -- Настройки по умолчанию уже хорошие, но можно кастомизировать
     plugins = {
-      marks = true,          -- показывает метки (ma → mA и т.д.)
-      registers = true,      -- показывает содержимое регистров
+      marks = true,
+      registers = true,
       spelling = {
         enabled = true,
         suggestions = 20,
@@ -22,53 +22,57 @@ return {
       },
     },
 
-    -- Внешний вид окна
     win = {
-      border = "rounded",          -- скруглённые углы
-      --position = "bottom",         -- снизу экрана
-      margin = { 1, 0, 1, 0 },     -- отступы
-      padding = { 1, 2, 1, 2 },    -- внутренние отступы
-      --winblend = 10,               -- прозрачность
+      border = "rounded",
+      position = "bottom",
+      no_overlap = true,
     },
 
-    -- Сортировка подсказок (по алфавиту, но можно изменить)
     sort = { "local", "order", "group", "alphanum", "mod" },
 
-    -- Иконки (если у тебя есть nerdfonts)
     icons = {
-      breadcrumb = "»",  -- разделитель в breadcrumb
-      separator = "➜",   -- стрелка
-      group = "+",       -- для групп
+      breadcrumb = "»",
+      separator = "➜",
+      group = "+",
     },
 
-    -- Показывать сразу после нажатия <leader> (без задержки)
     delay = function(ctx)
       return ctx.ctype == "mapping" and 0 or 500
     end,
 
-    -- Показывать подсказки для всех <leader> mappings
     show_help = true,
     show_keys = true,
+
+    -- Правильный способ включить триггер на <leader> в новых версиях (v3+)
+    -- "<auto>" — автоматически настраивает триггеры для всех режимов
+    -- Можно явно указать "<leader>" как строку
+    triggers = { "<auto>" },   -- ← это обычно работает лучше всего
+    -- Альтернатива, если "<auto>" не сработает:
+    -- triggers = { "<leader>" },
+
+    defer = function(ctx)
+      return ctx.mode == "n" and ctx.key == "<leader>"
+    end,
   },
 
   config = function(_, opts)
     local wk = require("which-key")
     wk.setup(opts)
 
-    -- Регистрируем группы (чтобы красиво группировались в меню)
+    -- Регистрируем группы БЕЗ ДУБЛИКАТОВ
     wk.add({
-      -- Основные группы
-      { "<leader>f", group = "find / telescope" },
+      -- Корневой префикс (часто решает проблему с неотображением после <leader>)
+      { "<leader>", group = "leader" },
+
+      -- Уникальные группы (удалены дубли)
+      { "<leader>f", group = "find/telescope" },
       { "<leader>l", group = "lsp" },
-      { "<leader>d", group = "debug / dap" },
-      { "<leader>c", group = "code / conform" },
-      { "<leader>g", group = "git" },
-      { "<leader>s", group = "surround / swap" },
       { "<leader>d", group = "debug/dap" },
       { "<leader>c", group = "code/format/cmake" },
-      { "<leader>f", group = "find/telescope" },
+      { "<leader>g", group = "git" },
+      { "<leader>s", group = "surround/swap" },
 
-      -- Конкретные примеры (добавляй свои по мере роста конфига)
+      -- Конкретные маппинги с описаниями
       { "<leader>ff", desc = "Find files" },
       { "<leader>fg", desc = "Live grep" },
       { "<leader>fb", desc = "Buffers" },
