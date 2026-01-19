@@ -8,7 +8,7 @@ return {
 		"theHamsta/nvim-dap-virtual-text", -- значения переменных в коде
 		"jay-babu/mason-nvim-dap.nvim", -- мост mason → dap (автоустановка codelldb)
 		"nvim-neotest/nvim-nio", -- зависимость dap-ui (asyncio-like)
-        "leoluz/nvim-dap-go",  -- Адаптер для Go (если multi-lang)
+		"leoluz/nvim-dap-go", -- Адаптер для Go (если multi-lang)
 	},
 
 	config = function()
@@ -103,11 +103,11 @@ return {
 			commented = false,
 		})
 
-        -- Интеграция с Telescope
-        require("telescope").load_extension("dap")
+		-- Интеграция с Telescope
+		require("telescope").load_extension("dap")
 
-        -- Настройка dap-go (если используете)
-        require("dap-go").setup()
+		-- Настройка dap-go (если используете)
+		require("dap-go").setup()
 
 		-- Горячие клавиши для отладки (можно вынести в отдельный файл)
 		local opts = { noremap = true, silent = true }
@@ -122,8 +122,8 @@ return {
 		vim.keymap.set("n", "<leader>dr", dap.repl.toggle, opts)
 		vim.keymap.set("n", "<leader>du", dapui.toggle, opts)
 
-        -- Горячие клавиши для Telescope DAP
-        vim.keymap.set("n", "<leader>dc", "<cmd>Telescope dap commands<cr>", { desc = "DAP commands" })
-        vim.keymap.set("n", "<leader>dbp", "<cmd>Telescope dap list_breakpoints<cr>", { desc = "DAP breakpoints" })
+		-- Горячие клавиши для Telescope DAP
+		vim.keymap.set("n", "<leader>dc", "<cmd>Telescope dap commands<cr>", { desc = "DAP commands" })
+		vim.keymap.set("n", "<leader>dbp", "<cmd>Telescope dap list_breakpoints<cr>", { desc = "DAP breakpoints" })
 	end,
 }
