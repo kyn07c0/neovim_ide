@@ -23,13 +23,7 @@ return {
 		})
 
 		-- Настройка адаптера codelldb (mason-nvim-dap сам подхватит путь)
-		dap.adapters.codelldb = function(callback, config)
-			-- Если нужно вручную — раскомментируй и используй mason-registry
-			-- local mason_registry = require("mason-registry")
-			-- local codelldb = mason_registry.get_package("codelldb")
-			-- local extension_path = codelldb:get_install_path() .. "/extension/"
-			-- local codelldb_path = extension_path .. "adapter/codelldb"
-
+		dap.adapters.codelldb = function(callback)
 			callback({
 				type = "server",
 				port = "${port}",
@@ -110,7 +104,7 @@ return {
 		})
 
         -- Интеграция с Telescope
-        require("telescope").load_extension("dap") 
+        require("telescope").load_extension("dap")
 
         -- Настройка dap-go (если используете)
         require("dap-go").setup()
@@ -127,7 +121,7 @@ return {
 		end, opts)
 		vim.keymap.set("n", "<leader>dr", dap.repl.toggle, opts)
 		vim.keymap.set("n", "<leader>du", dapui.toggle, opts)
-        
+
         -- Горячие клавиши для Telescope DAP
         vim.keymap.set("n", "<leader>dc", "<cmd>Telescope dap commands<cr>", { desc = "DAP commands" })
         vim.keymap.set("n", "<leader>dbp", "<cmd>Telescope dap list_breakpoints<cr>", { desc = "DAP breakpoints" })
