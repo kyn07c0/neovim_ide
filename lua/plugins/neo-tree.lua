@@ -17,7 +17,7 @@ return {
 
 	config = function()
 		require("neo-tree").setup({
-			close_if_last_window = true, -- закрыть, если остался только neo-tree
+			close_if_last_window = false,
 			popup_border_style = "rounded",
 			enable_git_status = true,
 			enable_diagnostics = true,
@@ -42,12 +42,16 @@ return {
 					leave_dirs_open = false,
 				},
 
+				-- Отключаем лишние авто-обновления при фокусе
+				bind_to_cwd = false, -- не привязывать к cwd
+				use_libuv_file_watcher = true, -- оставляем, но ниже контроль
+
 				group_empty_dirs = false,
 				hijack_netrw_behavior = "open_current",
 
-				use_libuv_file_watcher = true,
-
 				window = {
+					position = "left",
+					width = 40,
 					mappings = {
 						["<space>"] = "none", -- отключаем дефолтное поведение space
 						["<cr>"] = "open",
@@ -129,7 +133,10 @@ return {
 					highlight = "NeoTreeFileIcon",
 				},
 				modified = { symbol = "[+]", highlight = "NeoTreeModified" },
-				name = { trailing_slash = false, use_git_status_colors = true },
+				name = {
+					trailing_slash = false,
+					use_git_status_colors = true,
+				},
 				git_status = {
 					symbols = {
 						added = "✚",
@@ -143,6 +150,29 @@ return {
 						conflict = "",
 					},
 				},
+			},
+
+			-- Отключить refresh при WinEnter/BufEnter для neo-tree
+			event_handlers = {
+				{
+					event = "neo_tree_buffer_enter",
+					handler = function(state)
+						-- ничего не делаем при входе в окно neo-tree
+					end,
+				},
+				{
+					event = "neo_tree_buffer_leave",
+					handler = function(state)
+						-- ничего не делаем при уходе
+					end,
+				},
+                -- Дополнительно: блокируем события, которые могут вызвать redraw
+                {
+                    event = "file_opened",
+                    handler = function(state, path)
+                        -- Не закрываем и не перерисовываем дерево автоматически
+                    end,
+                },
 			},
 		})
 

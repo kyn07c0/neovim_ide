@@ -20,6 +20,8 @@ vim.opt.shiftwidth = 4 -- Сдвиг при отступах
 vim.opt.expandtab = true -- Преобразование табов в пробелы
 vim.g.mapleader = " " -- Лидер-ключ для кастомных комбинаций (пробел)
 vim.opt.guicursor = "n-v-c-sm:block,i-ci-ve:block,r-cr-o:hor20" -- Блочный курсор для всех режимов
+vim.opt.equalalways = false
+vim.opt.autochdir = false
 
 -- Настраиваем Lazy.nvim для загрузки плагинов из директории lua/plugins
 require("lazy").setup("plugins")
