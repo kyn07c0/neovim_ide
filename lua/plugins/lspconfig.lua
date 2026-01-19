@@ -22,11 +22,15 @@ return {
 				"--completion-style=detailed",
 				"--function-arg-placeholders",
 				"--fallback-style=llvm",
+                "--query-driver=/usr/bin/g++", -- компилятор
 			},
 
 			-- fallback-флаги, если нет compile_commands.json
 			init_options = {
+                compilationDatabasePath = "build", -- путь к compile_commands.json
 				fallbackFlags = { "-std=c++23" },
+                "-I${workspaceFolder}/include",  -- базовые пути
+                "-I${workspaceFolder}/src",
 			},
 
 			-- filetypes остаются те же

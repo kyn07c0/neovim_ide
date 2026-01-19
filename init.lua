@@ -23,5 +23,18 @@ vim.opt.guicursor = "n-v-c-sm:block,i-ci-ve:block,r-cr-o:hor20" -- Блочны�
 vim.opt.equalalways = false
 vim.opt.autochdir = false
 
+-- Оптимизации для больших проектов
+vim.o.swapfile = false -- отключить swap для производительности
+vim.o.undofile = true -- включить persistent undo
+vim.o.undolevels = 10000 -- большой history
+vim.o.updatetime = 300 -- быстрее обновления CursorHold
+vim.o.timeoutlen = 500 -- таймаут для последовательных клавиш
+
+-- Оптимизации LSP для C++
+vim.lsp.set_log_level("error") -- уменьшить логирование LSP
+
 -- Настраиваем Lazy.nvim для загрузки плагинов из директории lua/plugins
 require("lazy").setup("plugins")
+
+-- Кэширование для Telescope
+require("telescope").load_extension("frecency")
