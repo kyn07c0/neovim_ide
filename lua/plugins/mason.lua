@@ -1,4 +1,5 @@
 -- Менеджер для установки LSP-серверов и инструментов
+
 return {
   "williamboman/mason.nvim",
   dependencies = {
@@ -16,8 +17,8 @@ return {
     })
 
     require("mason-lspconfig").setup({
-      ensure_installed = { "clangd" },  -- Автоматически устанавливаем clangd для C++
-      automatic_installation = true,    -- Автоустановка серверов при первом запуске
+      ensure_installed = { "clangd", "codelldb", "cmake" }, -- Автоматически устанавливаем clangd для C++
+      automatic_installation = true,                        -- Автоустановка серверов при первом запуске
     })
   end,
 }

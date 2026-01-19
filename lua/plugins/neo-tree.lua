@@ -70,6 +70,11 @@ return {
             ["m"] = "move",
             ["q"] = "close_window",
             ["?"] = "show_help",
+            ["C"] = function(state)
+                local node = state.tree:get_node()
+                local path = node:get_id()
+                vim.api.nvim_input(":e " .. path .. "/new_file.cpp<CR>")  -- Пример: создать файл
+            end,
           },
         },
       },

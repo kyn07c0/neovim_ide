@@ -96,9 +96,12 @@ return {
       highlight_overrides = {
         mocha = function(colors)
           return {
-            -- Пример: сделать комментарии более читаемыми
+            -- сделать комментарии более читаемыми
             Comment = { fg = colors.overlay0 },
-            -- Или для C++: выделить namespace
+            -- выделить namespace
+            ["@lsp.type.namespace.cpp"] = { fg = colors.mauve, italic = true },
+            -- для шаблонов
+            ["@lsp.type.templateParameter.cpp"] = { fg = colors.pink, italic = true },
             ["@lsp.type.namespace.cpp"] = { fg = colors.mauve, italic = true },
           }
         end,

@@ -8,6 +8,7 @@ return {
     "hrsh7th/cmp-path",             -- Источник: пути к файлам/директориям
     "hrsh7th/cmp-cmdline",          -- Автодополнение в командной строке (:)
     "saadparwaiz1/cmp_luasnip",     -- Интеграция с LuaSnip для сниппетов
+    "hrsh7th/cmp-nvim-lsp-signature-help",
 
     -- Сам сниппет-движок (очень быстрый и современный)
     {
@@ -15,7 +16,7 @@ return {
       version = "v2.*",  -- Используем стабильную ветку v2 (актуально на 2026)
       build = "make install_jsregexp",  -- Для поддержки RegExp в сниппетах (опционально, но полезно)
       dependencies = {
-        "rafamadriz/friendly-snippets",  -- Готовые сниппеты для C++, cpp, cmake и многих языков
+        "rafamadriz/friendly-snippets", -- Готовые сниппеты для C++, cpp, cmake и многих языков
       },
     },
   },
@@ -45,10 +46,11 @@ return {
 
       -- Сортировка и приоритет источников (очень важно для удобства)
       sources = cmp.config.sources({
-        { name = "nvim_lsp" },     -- Первое место — LSP (clangd)
-        { name = "luasnip" },      -- Сниппеты
-        { name = "path" },      -- Пути
-        { name = "buffer", keyword_length = 3 },  -- Слова из буфера, только от 3 символов
+        { name = "nvim_lsp" },                  -- Первое место — LSP (clangd)
+        { name = "nvim_lsp_signature_help" },   -- Показ сигнатур
+        { name = "luasnip" },                   -- Сниппеты
+        { name = "path" },                      -- Пути
+        { name = "buffer" },                    -- Слова из буфера, только от 3 символов
       }),
 
       -- Форматирование элементов меню (иконки + тип + имя)
@@ -144,7 +146,7 @@ return {
 
       -- Производительность: не обновлять меню слишком часто
       experimental = {
-        ghost_text = true,  -- Показывать "призрачный" текст (очень удобно видеть, что будет вставлено)
+        ghost_text = false,  -- "призрачный" текст (отключено для производительности)
       },
     })
 

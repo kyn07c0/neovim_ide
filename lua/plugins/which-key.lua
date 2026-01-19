@@ -64,6 +64,9 @@ return {
       { "<leader>c", group = "code / conform" },
       { "<leader>g", group = "git" },
       { "<leader>s", group = "surround / swap" },
+      { "<leader>d", group = "debug/dap" },
+      { "<leader>c", group = "code/format/cmake" },
+      { "<leader>f", group = "find/telescope" },
 
       -- Конкретные примеры (добавляй свои по мере роста конфига)
       { "<leader>ff", desc = "Find files" },

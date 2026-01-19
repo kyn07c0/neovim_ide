@@ -10,6 +10,8 @@ return {
 			build = "make", -- или "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build" если make не работает
 		},
 		"nvim-telescope/telescope-ui-select.nvim",
+        "debugloop/telescope-undo.nvim",  -- Для undo history
+        "ahmedkhalf/project.nvim",        -- Для управления проектами
 	},
 
 	config = function()
@@ -66,6 +68,8 @@ return {
 		-- Загружаем расширения (это активирует fzf-сортеры)
 		telescope.load_extension("fzf")
 		telescope.load_extension("ui-select")
+        telescope.load_extension("undo")
+        telescope.load_extension("projects")
 
 		-- Горячие клавиши (leader = space)
 		local map = vim.keymap.set
@@ -73,6 +77,8 @@ return {
 		map("n", "<leader>fg", builtin.live_grep, { desc = "Live grep" })
 		map("n", "<leader>fb", builtin.buffers, { desc = "Buffers" })
 		map("n", "<leader>fh", builtin.help_tags, { desc = "Help tags" })
+        map("n", "<leader>fu", "<cmd>Telescope undo<cr>", { desc = "Undo history" })
+        map("n", "<leader>fp", "<cmd>Telescope projects<cr>", { desc = "Projects" })
 
 		-- LSP (очень полезно в C++)
 		map("n", "<leader>fs", builtin.lsp_dynamic_workspace_symbols, { desc = "Workspace symbols" })

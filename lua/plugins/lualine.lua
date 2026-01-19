@@ -5,6 +5,7 @@ return {
   dependencies = {
     "nvim-tree/nvim-web-devicons",  -- иконки (если нет — будет работать без них)
     "nvim-lua/lsp-status.nvim",     -- опционально, для лучшего LSP-статуса
+    "arkav/lualine-lsp-progress",  -- Для LSP progress
   },
   event = "VeryLazy",  -- загружаем после открытия первого буфера
 
@@ -79,7 +80,8 @@ return {
             },
             "encoding",
             "fileformat",
-            "filetype"
+            "filetype",
+            "lsp_progress",
           },
           lualine_y = { "progress" },
           lualine_z = { "location" }
