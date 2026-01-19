@@ -19,10 +19,12 @@ return {
 				close_command = "bdelete! %d", -- команда закрытия
 				right_mouse_command = "bdelete! %d",
 				middle_mouse_command = nil,
+
 				indicator = {
 					icon = "▎", -- индикатор активного буфера
 					style = "icon",
 				},
+
 				buffer_close_icon = "",
 				modified_icon = "●",
 				close_icon = "",
@@ -39,8 +41,10 @@ return {
 				max_name_length = 18,
 				max_prefix_length = 15,
 				tab_size = 18,
+
 				diagnostics = "nvim_lsp", -- показ ошибок/варнингов от LSP
 				diagnostics_update_in_insert = false,
+
 				diagnostics_indicator = function(count, level, diagnostics_dict, context)
 					local icon = level:match("error") and " " or " "
 					return " " .. icon .. count
@@ -77,20 +81,43 @@ return {
 
 			highlights = {
 				-- Можно кастомизировать цвета под твою тему (например catppuccin)
-				-- fill = { bg = "#1e1e2e" },
-				-- background = { fg = "#cdd6f4", bg = "#313244" },
-				-- buffer_selected = { fg = "#89b4fa", bg = "#45475a", bold = true },
+				fill = { bg = "#1e1e2e" },
+				background = { fg = "#cdd6f4", bg = "#313244" },
+				buffer_selected = { fg = "#89b4fa", bg = "#45475a", bold = true },
 			},
 		})
 
 		-- Горячие клавиши для переключения / закрытия
 		local map = vim.keymap.set
-		map("n", "<leader>bln", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
-		map("n", "<leader>blp", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Prev buffer" })
-		map("n", "<leader>bp", "<Cmd>BufferLineTogglePin<CR>", { desc = "Pin buffer" })
-		map("n", "<leader>bd", "<Cmd>bdelete<CR>", { desc = "Close buffer" })
-		map("n", "<leader>1", "<Cmd>BufferLineGoToBuffer 1<CR>", { desc = "Buffer 1" })
-		map("n", "<leader>2", "<Cmd>BufferLineGoToBuffer 2<CR>", { desc = "Buffer 2" })
-		-- ... до 9
+
+		map("n", "<Tab>", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
+		map("n", "<S-Tab>", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
+
+		-- Используем префикс <leader>t (tabs/buffers) вместо <leader>b
+		map("n", "<leader>tn", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
+		map("n", "<leader>tp", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
+		map("n", "<leader>tl", "<Cmd>BufferLineCloseLeft<CR>", { desc = "Close left buffers" })
+		map("n", "<leader>tr", "<Cmd>BufferLineCloseRight<CR>", { desc = "Close right buffers" })
+		map("n", "<leader>tc", "<Cmd>BufferLinePickClose<CR>", { desc = "Close buffer (pick)" })
+		map("n", "<leader>tp", "<Cmd>BufferLineTogglePin<CR>", { desc = "Pin / unpin buffer" })
+
+		-- Переход к буферу по номеру (очень удобно)
+		for i = 1, 9 do
+			map("n", "<leader>" .. i, function()
+				vim.cmd("BufferLineGoToBuffer " .. i)
+			end, { desc = "Go to buffer " .. i })
+		end
+
+		-- Интеграция с which-key (добавьте в ваш which-key.lua или здесь)
+		local wk = require("which-key")
+		wk.add({
+			{ "<leader>t", group = "tabs / buffers" },
+			{ "<leader>tn", desc = "Next buffer" },
+			{ "<leader>tp", desc = "Previous buffer" },
+			{ "<leader>tl", desc = "Close left" },
+			{ "<leader>tr", desc = "Close right" },
+			{ "<leader>tc", desc = "Close picked" },
+			{ "<leader>tp", desc = "Pin buffer" },
+		})
 	end,
 }
