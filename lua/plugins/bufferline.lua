@@ -25,9 +25,10 @@ return {
 					style = "icon",
 				},
 
-				buffer_close_icon = "",
-				modified_icon = "●",
-				close_icon = "",
+				-- Настройки иконок
+				buffer_close_icon = "󰅖", -- Иконка закрытия буфера
+				modified_icon = "●", -- Иконка модифицированного буфера
+				close_icon = "󰅙", -- Иконка закрытия таба
 				left_trunc_marker = "",
 				right_trunc_marker = "",
 
