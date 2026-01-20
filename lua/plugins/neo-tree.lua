@@ -21,7 +21,6 @@ return {
 			popup_border_style = "rounded",
 			enable_git_status = true,
 			enable_diagnostics = true,
-			open_files_do_not_replace_types = { "terminal", "Trouble", "qf" },
 
 			filesystem = {
 				filtered_items = {
@@ -29,17 +28,15 @@ return {
 					hide_dotfiles = true,
 					hide_gitignored = true,
 					hide_by_name = {
-						".git",
 						"node_modules",
-						"__pycache__",
-						".DS_Store",
+						".git",
 					},
 					never_show = { ".git" },
 				},
 
 				follow_current_file = {
-					enabled = false,
-					leave_dirs_open = false,
+					enabled = true,
+					leave_dirs_open = true,
 				},
 
 				-- Использовать фиксированный корень
@@ -56,7 +53,8 @@ return {
 
 				window = {
 					position = "left",
-					width = 40,
+					width = 30,
+					auto_expand_width = false,
 					mapping_options = {
 						noremap = true,
 						nowait = true,
@@ -94,33 +92,33 @@ return {
 				},
 
 				-- События которые НЕ вызывают обновление
-				event_handlers = {
-					-- Блокировать события изменения файлов
-					{
-						event = "file_opened",
-						handler = function(file_path)
-							-- Ничего не делаем при открытии файла
-						end,
-					},
-					{
-						event = "file_renamed",
-						handler = function(args)
-							-- Ничего не делаем при переименовании
-						end,
-					},
-					{
-						event = "file_moved",
-						handler = function(args)
-							-- Ничего не делаем при перемещении
-						end,
-					},
-					{
-						event = "file_deleted",
-						handler = function(file_path)
-							-- Ничего не делаем при удалении
-						end,
-					},
-				},
+				--event_handlers = {
+				-- Блокировать события изменения файлов
+				--	{
+				--		event = "file_opened",
+				--		handler = function(file_path)
+				-- Ничего не делаем при открытии файла
+				--		end,
+				--	},
+				--	{
+				--		event = "file_renamed",
+				--		handler = function(args)
+				-- Ничего не делаем при переименовании
+				--		end,
+				--	},
+				--	{
+				--		event = "file_moved",
+				--		handler = function(args)
+				-- Ничего не делаем при перемещении
+				--		end,
+				--	},
+				--	{
+				--		event = "file_deleted",
+				--		handler = function(file_path)
+				-- Ничего не делаем при удалении
+				--		end,
+				--	},
+				--},
 			},
 
 			buffers = {
@@ -133,6 +131,11 @@ return {
 						["<bs>"] = "navigate_up",
 						["."] = "set_root",
 					},
+				},
+
+				follow_current_file = {
+					enabled = true,
+					leave_dirs_open = true,
 				},
 			},
 
@@ -194,9 +197,9 @@ return {
 		})
 
 		-- Интеграция с which-key (если используешь)
-		require("which-key").add({
-			{ "<leader>e", desc = "Toggle Neo-tree" },
-			{ "<leader>o", desc = "Focus Neo-tree" },
-		})
+		--require("which-key").add({
+		--	{ "<leader>e", desc = "Toggle Neo-tree" },
+		--	{ "<leader>o", desc = "Focus Neo-tree" },
+		--})
 	end,
 }

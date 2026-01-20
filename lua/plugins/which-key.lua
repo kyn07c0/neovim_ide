@@ -22,7 +22,7 @@ return {
       },
     },
 
-    win = {
+    window = {
       border = "rounded",
       position = "bottom",
       no_overlap = true,
