@@ -22,15 +22,15 @@ return {
 				"--completion-style=detailed",
 				"--function-arg-placeholders",
 				"--fallback-style=llvm",
-                "--query-driver=/usr/bin/g++", -- компилятор
+				"--query-driver=/usr/bin/g++", -- компилятор
 			},
 
 			-- fallback-флаги, если нет compile_commands.json
 			init_options = {
-                compilationDatabasePath = "build", -- путь к compile_commands.json
+				compilationDatabasePath = "build", -- путь к compile_commands.json
 				fallbackFlags = { "-std=c++23" },
-                "-I${workspaceFolder}/include",  -- базовые пути
-                "-I${workspaceFolder}/src",
+				"-I${workspaceFolder}/include", -- базовые пути
+				"-I${workspaceFolder}/src",
 			},
 
 			-- filetypes остаются те же
@@ -77,17 +77,18 @@ return {
 		-- Настройки диагностики (остаются без изменений)
 		vim.diagnostic.config({
 			virtual_text = true,
-			signs = true,
+			signs = {
+				text = {
+					[vim.diagnostic.severity.ERROR] = "󰅚 ",
+					[vim.diagnostic.severity.WARN] = "󰀪 ",
+					[vim.diagnostic.severity.HINT] = "󰌶 ",
+					[vim.diagnostic.severity.INFO] = " ",
+				},
+			},
+
 			underline = true,
 			update_in_insert = false,
 			severity_sort = true,
 		})
-
-		-- Иконки диагностики
-		local signs = { Error = "󰅚 ", Warn = "󰀪 ", Hint = "󰌶 ", Info = " " }
-		for type, icon in pairs(signs) do
-			local hl = "DiagnosticSign" .. type
-			vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
-		end
 	end,
 }
