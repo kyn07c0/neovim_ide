@@ -17,7 +17,7 @@ return {
 
 	config = function()
 		require("neo-tree").setup({
-			close_if_last_window = false,
+			close_if_last_window = true,
 			popup_border_style = "rounded",
 			enable_git_status = true,
 			enable_diagnostics = true,
@@ -42,16 +42,27 @@ return {
 					leave_dirs_open = false,
 				},
 
-				-- Отключаем лишние авто-обновления при фокусе
-				bind_to_cwd = false, -- не привязывать к cwd
-				use_libuv_file_watcher = true, -- оставляем, но ниже контроль
+				-- Использовать фиксированный корень
+				bind_to_cwd = true,
+				cwd_target = {
+					sidebar = "tab",
+				},
 
+				-- Группировка пустых директорий
 				group_empty_dirs = false,
-				hijack_netrw_behavior = "open_current",
+
+				-- Не обновлять при изменении директории
+				hijack_netrw_behavior = "open_default",
 
 				window = {
 					position = "left",
 					width = 40,
+					mapping_options = {
+						noremap = true,
+						nowait = true,
+					},
+
+					-- Сохранять состояние при переключении окон
 					mappings = {
 						["<space>"] = "none", -- отключаем дефолтное поведение space
 						["<cr>"] = "open",
@@ -77,7 +88,36 @@ return {
 						["C"] = function(state)
 							local node = state.tree:get_node()
 							local path = node:get_id()
-							vim.api.nvim_input(":e " .. path .. "/new_file.cpp<CR>") -- Пример: создать файл
+							vim.api.nvim_input(":e " .. path .. "/new_file.cpp<CR>")
+						end,
+					},
+				},
+
+				-- События которые НЕ вызывают обновление
+				event_handlers = {
+					-- Блокировать события изменения файлов
+					{
+						event = "file_opened",
+						handler = function(file_path)
+							-- Ничего не делаем при открытии файла
+						end,
+					},
+					{
+						event = "file_renamed",
+						handler = function(args)
+							-- Ничего не делаем при переименовании
+						end,
+					},
+					{
+						event = "file_moved",
+						handler = function(args)
+							-- Ничего не делаем при перемещении
+						end,
+					},
+					{
+						event = "file_deleted",
+						handler = function(file_path)
+							-- Ничего не делаем при удалении
 						end,
 					},
 				},
@@ -150,29 +190,6 @@ return {
 						conflict = "",
 					},
 				},
-			},
-
-			-- Отключить refresh при WinEnter/BufEnter для neo-tree
-			event_handlers = {
-				{
-					event = "neo_tree_buffer_enter",
-					handler = function(state)
-						-- ничего не делаем при входе в окно neo-tree
-					end,
-				},
-				{
-					event = "neo_tree_buffer_leave",
-					handler = function(state)
-						-- ничего не делаем при уходе
-					end,
-				},
-                -- Дополнительно: блокируем события, которые могут вызвать redraw
-                {
-                    event = "file_opened",
-                    handler = function(state, path)
-                        -- Не закрываем и не перерисовываем дерево автоматически
-                    end,
-                },
 			},
 		})
 
