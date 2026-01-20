@@ -90,35 +90,6 @@ return {
 						end,
 					},
 				},
-
-				-- События которые НЕ вызывают обновление
-				--event_handlers = {
-				-- Блокировать события изменения файлов
-				--	{
-				--		event = "file_opened",
-				--		handler = function(file_path)
-				-- Ничего не делаем при открытии файла
-				--		end,
-				--	},
-				--	{
-				--		event = "file_renamed",
-				--		handler = function(args)
-				-- Ничего не делаем при переименовании
-				--		end,
-				--	},
-				--	{
-				--		event = "file_moved",
-				--		handler = function(args)
-				-- Ничего не делаем при перемещении
-				--		end,
-				--	},
-				--	{
-				--		event = "file_deleted",
-				--		handler = function(file_path)
-				-- Ничего не делаем при удалении
-				--		end,
-				--	},
-				--},
 			},
 
 			buffers = {
