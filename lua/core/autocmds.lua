@@ -121,6 +121,9 @@ vim.api.nvim_create_autocmd("FileType", {
 	pattern = "json",
 	callback = function()
 		vim.wo.conceallevel = 0
+		vim.bo.expandtab = true
+		vim.bo.tabstop = 2
+		vim.bo.shiftwidth = 2
 	end,
 	desc = "Настройки для JSON файлов",
 })
@@ -132,6 +135,7 @@ vim.api.nvim_create_autocmd("FileType", {
 	callback = function()
 		vim.bo.tabstop = 2
 		vim.bo.shiftwidth = 2
+		vim.bo.expandtab = true
 	end,
 	desc = "Настройки для YAML файлов",
 })
@@ -147,6 +151,80 @@ vim.api.nvim_create_autocmd("FileType", {
 		end
 	end,
 	desc = "Добавление парных символов для C++",
+})
+
+---------- АВТООПРЕДЕЛЕНИЕ ФАЙЛОВ ----------
+
+-- Автоопределение типов файлов по расширению
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+	group = autocmd_group,
+	pattern = {
+		-- C/C++ расширения
+		"*.cxx",
+		"*.cc",
+		"*.C",
+		"*.hxx",
+		"*.hh",
+		"*.H",
+		"*.inl",
+		"*.ipp",
+		"*.tpp",
+		"*.tcc",
+		-- Python
+		"*.pyx",
+		"*.pxd",
+		"*.pxi",
+		-- Shell
+		"*.sh",
+		"*.bash",
+		"*.zsh",
+		"*.fish",
+		-- Конфиги
+		"*.conf",
+		"*.cfg",
+		"*.ini",
+		-- Docker
+		"Dockerfile",
+		"*.dockerfile",
+		-- Git
+		".gitignore",
+		".gitconfig",
+		".gitmodules",
+	},
+	callback = function(ev)
+		local ft_map = {
+			-- C/C++
+			["cxx"] = "cpp",
+			["cc"] = "cpp",
+			["C"] = "cpp",
+			["hxx"] = "cpp",
+			["hh"] = "cpp",
+			["H"] = "cpp",
+			["inl"] = "cpp",
+			["ipp"] = "cpp",
+			["tpp"] = "cpp",
+			["tcc"] = "cpp",
+			-- Python
+			["pyx"] = "python",
+			["pxd"] = "python",
+			["pxi"] = "python",
+			-- Shell
+			["sh"] = "sh",
+			["bash"] = "bash",
+			["zsh"] = "zsh",
+			["fish"] = "fish",
+			-- Конфиги
+			["conf"] = "conf",
+			["cfg"] = "conf",
+			["ini"] = "conf",
+		}
+
+		local ext = ev.match:match("%.(%w+)$")
+		if ext and ft_map[ext] then
+			vim.bo.filetype = ft_map[ext]
+		end
+	end,
+	desc = "Автоопределение типов файлов",
 })
 
 ---------- АВТООПРЕДЕЛЕНИЕ ПРОЕКТА ----------
@@ -220,6 +298,7 @@ vim.api.nvim_create_autocmd("TermOpen", {
 		vim.wo.number = false
 		vim.wo.relativenumber = false
 		vim.wo.signcolumn = "no"
+		vim.wo.wrap = true
 	end,
 	desc = "Настройки терминала",
 })
