@@ -200,8 +200,8 @@ end, { desc = "Показать/скрыть непечатаемые симво
 
 -- Показать диагностику
 map("n", "<leader>dd", vim.diagnostic.open_float, { desc = "Показать диагностику" })
-map("n", "[d", vim.diagnostic.goto_prev, { desc = "Предыдущая диагностика" })
-map("n", "]d", vim.diagnostic.goto_next, { desc = "Следующая диагностика" })
+map("n", "[d", vim.diagnostic.get_prev, { desc = "Предыдущая диагностика" })
+map("n", "]d", vim.diagnostic.get_next, { desc = "Следующая диагностика" })
 
 ---------- МАКРОСЫ ----------
 
