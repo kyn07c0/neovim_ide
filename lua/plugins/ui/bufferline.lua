@@ -15,6 +15,7 @@ return {
 		bufferline.setup({
 			options = {
 				mode = "buffers", -- показываем буферы, а не табы
+				themable = true,
 				numbers = "ordinal", -- номера буферов (1, 2, 3...)
 				close_command = "bdelete! %d", -- команда закрытия
 				right_mouse_command = "bdelete! %d",
@@ -78,13 +79,6 @@ return {
 
 				separator_style = "slant", -- или "thick", "thin", "slope"
 				always_show_bufferline = true,
-			},
-
-			highlights = {
-				-- Можно кастомизировать цвета под твою тему (например catppuccin)
-				fill = { bg = "#1e1e2e" },
-				background = { fg = "#cdd6f4", bg = "#313244" },
-				buffer_selected = { fg = "#89b4fa", bg = "#45475a", bold = true },
 			},
 		})
 
