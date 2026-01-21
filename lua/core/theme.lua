@@ -220,11 +220,10 @@ return {
 				})
 
 				-- Интеграция с индикаторами отступов
-				local ibl_ok, ibl = pcall(require, "ibl")
+				local ibl_ok = pcall(require, "ibl")
 				if ibl_ok then
 					-- Получаем цвета темы для indent-blankline
-					local kanagawa_colors = require("kanagawa.colors").setup()
-					local theme = kanagawa_colors.theme
+					require("kanagawa.colors").setup()
 
 					-- Создаем кастомные группы для indent-blankline
 					local indent_highlight = {
