@@ -120,7 +120,7 @@ vim.api.nvim_create_autocmd("FileType", {
 	group = autocmd_group,
 	pattern = "json",
 	callback = function()
-		vim.bo.conceallevel = 0
+		vim.wo.conceallevel = 0
 	end,
 	desc = "Настройки для JSON файлов",
 })
@@ -141,7 +141,10 @@ vim.api.nvim_create_autocmd("FileType", {
 	group = autocmd_group,
 	pattern = { "cpp", "c", "h", "hpp" },
 	callback = function()
-		vim.bo.matchpairs:append("<:>")
+		local current = vim.bo.matchpairs
+		if not string.find(current, "<:>") then
+			vim.bo.matchpairs = current .. ",<:>"
+		end
 	end,
 	desc = "Добавление парных символов для C++",
 })
