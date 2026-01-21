@@ -107,9 +107,9 @@ vim.api.nvim_create_autocmd("FileType", {
 	group = autocmd_group,
 	pattern = { "markdown", "md" },
 	callback = function()
-		vim.bo.wrap = true
-		vim.bo.linebreak = true
-		vim.bo.spell = true
+		vim.wo.wrap = true
+		vim.wo.linebreak = true
+		vim.wo.spell = true
 		vim.bo.spelllang = "en_us,ru"
 	end,
 	desc = "Настройки для Markdown файлов",
