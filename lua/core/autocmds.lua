@@ -150,6 +150,10 @@ vim.api.nvim_create_autocmd("FileType", {
 		vim.bo.shiftwidth = 4
 		vim.bo.softtabstop = 4
 		vim.bo.expandtab = false -- Используем табы, не пробелы
+		vim.bo.textwidth = 0 -- Не ограничивать длину строки
+
+		-- Отключаем форматирование от LSP если оно меняет отступы
+		vim.b.disable_autoformat = false
 
 		local current = vim.bo.matchpairs
 		if not string.find(current, "<:>") then

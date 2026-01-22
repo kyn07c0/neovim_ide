@@ -18,10 +18,10 @@ return {
 	opts = {
 		-- будет использоваться когда не найден ни один formatter для файла
 		default_format_opts = {
-			timeout_ms = 3000,
+			timeout_ms = 5000,
 			async = false,
 			quiet = false,
-			lsp_format = "fallback", -- очень полезная настройка
+			lsp_format = "fallback",
 		},
 
 		format_on_save = {
@@ -91,21 +91,36 @@ return {
 
 				-- 3. Самый популярный вариант — дать приоритет файлу проекта, а если нет — LLVM/Google
 				prepend_args = {
-					"--fallback-style=LLVM", -- или "Google"
+					"--fallback-style=LLVM",
+					"--style={BasedOnStyle: LLVM, IndentWidth: 4, TabWidth: 4, UseTab: Always, ColumnLimit: 0}",
 				},
 			},
 
 			shfmt = {
-				prepend_args = { "-i", "2" }, -- 2 пробела — стандарт для shell
+				prepend_args = { "-i", "4", "-ci" },
 			},
 
-			stylua = {
-				prepend_args = { "--search-parent-directories" },
+			hadolint = {
+				command = "dockerfile_lint",
 			},
 		},
 	},
 
 	init = function()
+		-- Отключаем LSP форматирование для C/C++
+		vim.api.nvim_create_autocmd("LspAttach", {
+			callback = function(args)
+				local client = vim.lsp.get_client_by_id(args.data.client_id)
+				local ft = vim.bo[args.buf].filetype
+
+				if client and (ft == "cpp" or ft == "c" or ft:match("^h")) then
+					client.server_capabilities.documentFormattingProvider = false
+					client.server_capabilities.documentRangeFormattingProvider = false
+					print("Отключено LSP форматирование для C/C++")
+				end
+			end,
+		})
+
 		-- Если вы хотите видеть, какие форматтеры будут запущены
 		-- vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
 	end,
