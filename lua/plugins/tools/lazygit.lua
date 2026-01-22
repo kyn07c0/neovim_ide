@@ -1,4 +1,4 @@
--- lazygit.nvim — открывает lazygit (мощный Git TUI) в floating окне Neovim
+-- Мощный Git TUI
 
 return {
 	"kdheepak/lazygit.nvim",

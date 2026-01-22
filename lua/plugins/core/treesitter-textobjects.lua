@@ -1,4 +1,4 @@
--- nvim-treesitter-textobjects: для работы с блоками кода (af/if для функций, классов, if и т.д.)
+-- Работа с блоками кода (af/if для функций, классов, if и т.д.)
 
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",

@@ -1,4 +1,4 @@
--- indent-blankline.nvim — вертикальные линии для уровней отступов (indent guides)
+-- Вертикальные линии для уровней отступов (indent guides)
 
 return {
 	{

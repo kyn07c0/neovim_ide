@@ -1,4 +1,4 @@
--- bufferline.nvim — красивые вкладки буферов сверху экрана
+-- Вкладки буферов сверху экрана
 
 return {
 	"akinsho/bufferline.nvim",

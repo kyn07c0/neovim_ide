@@ -1,3 +1,5 @@
+-- Тема оформления NeoVim
+
 return {
 	{
 		"rebelot/kanagawa.nvim",

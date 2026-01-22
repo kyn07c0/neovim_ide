@@ -18,7 +18,12 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 -- Загрузка плагинов
-require("lazy").setup("plugins")
+require("lazy").setup("plugins", {
+	change_detection = {
+		-- Отключить проверку изменений
+		enabled = false,
+	},
+})
 
 -- Загрузка утилит
 require("utils")

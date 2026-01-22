@@ -57,8 +57,15 @@ function M.setup_cmake_project()
 		vim.notify("Создана директория build", vim.log.levels.INFO)
 	end
 
+	-- Проверка установки Ninja
+	local generator = ""
+	if vim.fn.executable("ninja") == 1 then
+		generator = " -G Ninja"
+	end
+
 	-- Генерируем проект
-	vim.cmd("!cd " .. build_dir .. " && cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja")
+	local escaped_dir = vim.fn.shellescape(build_dir)
+	vim.cmd("!cd " .. escaped_dir .. " && cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" .. generator)
 
 	-- Ждем и создаем симлинк compile_commands.json
 	vim.defer_fn(function()
@@ -72,7 +79,9 @@ function M.setup_cmake_project()
 			end
 
 			-- Создаем симлинк
-			local success = os.execute("ln -sf " .. compile_commands_build .. " " .. compile_commands_root)
+			local escaped_build = vim.fn.shellescape(compile_commands_build)
+			local escaped_root = vim.fn.shellescape(compile_commands_root)
+			local success = vim.system({ "ln", "-sf", escaped_build, escaped_root })
 			if success then
 				vim.notify("Создан симлинк compile_commands.json", vim.log.levels.INFO)
 			end
@@ -93,28 +102,52 @@ function M.create_cmake_project()
 
 	local cmake_content = string.format(
 		[[
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(%s VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Настройки сборки по умолчанию
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Тип сборки" FORCE)
+endif()
+
 # Опции сборки
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+# Настройка выходных директорий
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Настройки для разных конфигураций (Debug/Release)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin/Debug)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin/Release)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib/Debug)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib/Release)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib/Debug)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib/Release)
+
+# Флаги компиляции для Debug
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g -O0")
+# Флаги для Release
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 # Каталоги исходного кода
 add_subdirectory(src)
 
 # Тесты
-if(BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+if(BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests AND IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
     enable_testing()
     add_subdirectory(tests)
 endif()
 
 # Примеры
-if(BUILD_EXAMPLES AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
+if(BUILD_EXAMPLES AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples AND IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples)
     add_subdirectory(examples)
 endif()
 ]],
@@ -127,6 +160,14 @@ endif()
 add_library(%s_lib STATIC
     lib.cpp
     lib.h
+)
+
+# Устанавливаем свойства библиотеки
+set_target_properties(test_lib PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    DEBUG_POSTFIX "_d"  # Для debug версии библиотеки
+    RELEASE_POSTFIX ""  # Явно указываем
 )
 
 # Основной исполняемый файл
@@ -149,14 +190,17 @@ target_include_directories(%s_main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 		project_name
 	)
 
-	local main_cpp = [[#include <iostream>
+	local main_cpp = string.format(
+		[[#include <iostream>
 #include "lib.h"
 
 int main() {
-    std::cout << "Hello from " << PROJECT_NAME << "!" << std::endl;
+    std::cout << "Hello from %s!" << std::endl;
     print_message();
     return 0;
-}]]
+}]],
+		project_name
+	)
 
 	local lib_h = [[#pragma once
 

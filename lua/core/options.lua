@@ -11,8 +11,9 @@ opt.signcolumn = "yes" -- Всегда показывать колонку зн�
 opt.tabstop = 4 -- Размер табуляции в пробелах
 opt.shiftwidth = 4 -- Размер отступа для > и <
 opt.softtabstop = 4 -- Количество пробелов при нажатии Tab
-opt.expandtab = true -- Преобразовывать табы в пробелы
+opt.expandtab = false -- Преобразовывать табы в пробелы
 opt.smartindent = true -- Умные отступы
+vim.opt.smarttab = true -- Умные табы
 opt.autoindent = true -- Автоматические отступы
 
 ---------- ПОИСК ----------

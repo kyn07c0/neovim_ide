@@ -1,4 +1,4 @@
--- todo-comments.nvim — подсветка и поиск TODO, FIXME, NOTE, HACK и т.д.
+-- Подсветка и поиск TODO, FIXME, NOTE, HACK и т.д.
 
 return {
 	"folke/todo-comments.nvim",

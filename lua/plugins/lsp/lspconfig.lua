@@ -38,8 +38,8 @@ return {
 
 			-- on_attach — вызывается после присоединения клиента к буферу
 			on_attach = function(client, bufnr)
-				-- omnifunc для Ctrl+X Ctrl+O
-				vim.api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
+				-- Отключаем форматирование от LSP
+				client.server_capabilities.documentFormattingProvider = true
 
 				local opts = { noremap = true, silent = true, buffer = bufnr }
 

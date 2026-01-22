@@ -1,4 +1,4 @@
--- vim-startuptime — анализ времени запуска Neovim (запуск с --startuptime)
+-- Анализ времени запуска Neovim (запуск с --startuptime)
 
 return {
 	"dstein64/vim-startuptime",
