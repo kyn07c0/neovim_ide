@@ -1,4 +1,4 @@
--- cmake-tools.nvim — удобная интеграция с CMake (build, run, debug)
+-- Интеграция с CMake (build, run, debug)
 
 return {
 	"civitasv/cmake-tools.nvim",

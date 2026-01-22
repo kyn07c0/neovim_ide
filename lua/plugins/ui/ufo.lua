@@ -1,4 +1,4 @@
--- nvim-ufo — продвинутый folding с preview и treesitter-поддержкой
+-- Продвинутый folding с preview и treesitter-поддержкой
 
 return {
 	"kevinhwang91/nvim-ufo",

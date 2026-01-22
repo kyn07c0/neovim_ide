@@ -1,4 +1,4 @@
--- neo-tree.nvim — современный файловый менеджер
+-- Файловый менеджер
 
 return {
 	"nvim-neo-tree/neo-tree.nvim",

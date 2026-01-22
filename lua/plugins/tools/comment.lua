@@ -1,4 +1,4 @@
--- Comment.nvim — мощное комментирование кода (лучше mini.comment по гибкости)
+-- Комментирование кода
 
 return {
 	"numToStr/Comment.nvim",
