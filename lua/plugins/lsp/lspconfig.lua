@@ -22,15 +22,15 @@ return {
 				"--completion-style=detailed",
 				"--function-arg-placeholders",
 				"--fallback-style=llvm",
-                "--query-driver=/usr/bin/g++", -- компилятор
+				"--query-driver=/usr/bin/g++", -- компилятор
 			},
 
 			-- fallback-флаги, если нет compile_commands.json
 			init_options = {
-                compilationDatabasePath = "build", -- путь к compile_commands.json
+				compilationDatabasePath = "build", -- путь к compile_commands.json
 				fallbackFlags = { "-std=c++23" },
-                "-I${workspaceFolder}/include",  -- базовые пути
-                "-I${workspaceFolder}/src",
+				"-I${workspaceFolder}/include", -- базовые пути
+				"-I${workspaceFolder}/src",
 			},
 
 			-- filetypes остаются те же
@@ -38,8 +38,8 @@ return {
 
 			-- on_attach — вызывается после присоединения клиента к буферу
 			on_attach = function(client, bufnr)
-				-- omnifunc для Ctrl+X Ctrl+O
-				vim.api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
+				-- Отключаем форматирование от LSP
+				client.server_capabilities.documentFormattingProvider = true
 
 				local opts = { noremap = true, silent = true, buffer = bufnr }
 

@@ -95,8 +95,8 @@ vim.api.nvim_create_autocmd("FileType", {
 	group = autocmd_group,
 	pattern = "cmake",
 	callback = function()
-		vim.bo.tabstop = 2
-		vim.bo.shiftwidth = 2
+		vim.bo.tabstop = 4
+		vim.bo.shiftwidth = 4
 		vim.bo.commentstring = "# %s"
 	end,
 	desc = "Настройки для CMake файлов",
@@ -122,8 +122,8 @@ vim.api.nvim_create_autocmd("FileType", {
 	callback = function()
 		vim.wo.conceallevel = 0
 		vim.bo.expandtab = true
-		vim.bo.tabstop = 2
-		vim.bo.shiftwidth = 2
+		vim.bo.tabstop = 4
+		vim.bo.shiftwidth = 4
 	end,
 	desc = "Настройки для JSON файлов",
 })
@@ -133,8 +133,8 @@ vim.api.nvim_create_autocmd("FileType", {
 	group = autocmd_group,
 	pattern = "yaml",
 	callback = function()
-		vim.bo.tabstop = 2
-		vim.bo.shiftwidth = 2
+		vim.bo.tabstop = 4
+		vim.bo.shiftwidth = 4
 		vim.bo.expandtab = true
 	end,
 	desc = "Настройки для YAML файлов",
@@ -145,6 +145,12 @@ vim.api.nvim_create_autocmd("FileType", {
 	group = autocmd_group,
 	pattern = { "cpp", "c", "h", "hpp" },
 	callback = function()
+		-- Настройки отступов для C/C++
+		vim.bo.tabstop = 4
+		vim.bo.shiftwidth = 4
+		vim.bo.softtabstop = 4
+		vim.bo.expandtab = false -- Используем табы, не пробелы
+
 		local current = vim.bo.matchpairs
 		if not string.find(current, "<:>") then
 			vim.bo.matchpairs = current .. ",<:>"
