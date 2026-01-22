@@ -16,38 +16,6 @@ return {
 	},
 
 	config = function()
-		-- Настраиваем умное закрытие окон
-		local function smart_close()
-			local wins = vim.api.nvim_list_wins()
-			local normal_wins = 0
-			local neo_tree_wins = {}
-
-			for _, w in ipairs(wins) do
-				local buf = vim.api.nvim_win_get_buf(w)
-				local ft = vim.api.nvim_buf_get_option(buf, "filetype")
-				local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-
-				if ft == "neo-tree" then
-					table.insert(neo_tree_wins, w)
-				elseif buftype == "" then -- нормальные буферы с файлами
-					normal_wins = normal_wins + 1
-				end
-			end
-
-			-- Если закрываем последнее нормальное окно
-			if normal_wins <= 1 then
-				-- Скрываем все окна neo-tree вместо закрытия
-				for _, w in ipairs(neo_tree_wins) do
-					vim.api.nvim_win_hide(w)
-				end
-			end
-		end
-
-		-- Автокоманда перед выходом
-		vim.api.nvim_create_autocmd("QuitPre", {
-			callback = smart_close,
-		})
-
 		require("neo-tree").setup({
 			close_if_last_window = false,
 			popup_border_style = "rounded",
