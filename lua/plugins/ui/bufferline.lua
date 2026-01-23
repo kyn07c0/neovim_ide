@@ -67,7 +67,27 @@ return {
 					},
 				},
 
-				-- Отключить в некоторых типах окон
+				-- Игнорируем расширения, чтобы он не появлялся в списке
+				filetype_denylist = {
+					"neo-tree",
+					"neo-tree-popup",
+					"notify",
+					"noice",
+					"prompt",
+					"gitcommit",
+					"help",
+					"startuptime",
+					"qf",
+				},
+
+				buftype_denylist = {
+					"terminal",
+					"quickfix",
+					"nofile",
+					"prompt",
+				},
+
+				-- Оффсеты для отображения заголовка
 				offsets = {
 					{
 						filetype = "neo-tree",
@@ -91,39 +111,47 @@ return {
 						return
 					end
 
-					-- Получаем список всех listed буферов ДО закрытия
-					local bufs_before = {}
+					-- Получаем все listed буферы ДО закрытия
+					local listed_buffers = {}
 					for _, buf in ipairs(vim.api.nvim_list_bufs()) do
 						if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
-							table.insert(bufs_before, buf)
+							table.insert(listed_buffers, buf)
 						end
 					end
 
-					-- Закрываем буфер
+					-- Если закрывается НЕ последний буфер — просто закрываем
+					if #listed_buffers > 1 then
+						vim.cmd("silent! bdelete " .. bufnum)
+						vim.cmd("BufferLineCycleNext")
+						return
+					end
+
+					-- Если это ПОСЛЕДНИЙ буфер:
+					-- 1. Не удаляем его, а очищаем и делаем unlisted
 					vim.cmd("silent! bdelete " .. bufnum)
 
-					-- Откладываем обработку, чтобы дать Neovim обновить состояние
+					-- 2. Создаём новый пустой буфер и делаем его unlisted
+					local new_buf = vim.api.nvim_create_buf(false, true) -- no file, scratch
+					vim.api.nvim_set_current_buf(new_buf)
+					vim.bo[new_buf].buflisted = false
+					vim.bo[new_buf].buftype = "nofile"
+					vim.bo[new_buf].swapfile = false
+					vim.bo[new_buf].modifiable = false
+
+					-- 3. Показываем neo-tree
+					vim.cmd("Neotree show")
+
+					-- 4. Фокус на neo-tree
 					vim.defer_fn(function()
-						-- Собираем валидные listed буферы ПОСЛЕ закрытия
-						local valid_buffers = {}
-						for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-							if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
-								table.insert(valid_buffers, buf)
+						-- Найти окно neo-tree и перейти в него
+						for _, win in ipairs(vim.api.nvim_list_wins()) do
+							local buf = vim.api.nvim_win_get_buf(win)
+							if vim.bo[buf].filetype == "neo-tree" then
+								vim.api.nvim_set_current_win(win)
+								break
 							end
 						end
-
-						if #valid_buffers == 0 then
-							-- Нет буферов — открываем neo-tree и фокусим его
-							vim.cmd("Neotree show")
-							-- Убедимся, что neo-tree слева и фиксированной ширины
-							vim.cmd("wincmd H") -- переместить текущее окно влево
-						else
-							-- Есть другие буферы — просто переключаемся на следующий
-							-- BufferLineCycleNext работает, но может не сработать, если буфер уже закрыт
-							-- Лучше использовать встроенную команду
-							vim.cmd("BufferLineCycleNext")
-						end
-					end, 10)
+					end, 50)
 				end,
 
 				-- Правая клавиша мыши для закрытия

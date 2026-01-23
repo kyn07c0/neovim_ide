@@ -44,6 +44,7 @@ return {
 				cwd_target = {
 					sidebar = "tab",
 				},
+				bind_to_cwd = false,
 
 				-- Группировка пустых директорий
 				group_empty_dirs = false,
@@ -55,8 +56,6 @@ return {
 					position = "left",
 					width = 30, -- Постоянная ширина в 30 колонок
 					auto_expand_width = false, -- Отключаем авто-расширение
-					resize_timer_interval = 0, -- Отключаем таймер ресайза
-					preserve_window_proportions = false, -- Запрещаем сохранение пропорций
 					mapping_options = {
 						noremap = true,
 						nowait = true,
@@ -173,15 +172,8 @@ return {
 				auto_expand_width = false,
 				resize_timer_interval = 0,
 				preserve_window_proportions = false,
-				mapping_options = {
-					noremap = true,
-					nowait = true,
-				},
-				-- Ключевое: не закрывать neo-tree, даже если это последнее окно
-				-- (но мы сами будем управлять этим через bufferline)
 			},
 
-			-- Также добавьте в корень setup:
 			event_handlers = {
 				{
 					event = "neo_tree_buffer_enter",

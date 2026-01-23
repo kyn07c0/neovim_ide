@@ -346,18 +346,43 @@ vim.api.nvim_create_autocmd("BufEnter", {
 
 ------------- ОКНА -------------
 
--- Защищаем neo-tree от изменения ширины
-vim.api.nvim_create_autocmd("WinEnter", {
+-- Защита ширины neo-tree
+vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
 	callback = function()
 		local buf = vim.api.nvim_get_current_buf()
-		local ft = vim.bo[buf].filetype
-		if ft == "neo-tree" then
+		if vim.bo[buf].filetype == "neo-tree" then
 			local win = vim.api.nvim_get_current_win()
 			local width = vim.api.nvim_win_get_width(win)
 			if width ~= 30 then
 				vim.api.nvim_win_set_width(win, 30)
 			end
-			vim.cmd("wincmd H")
+		end
+	end,
+})
+
+-- Добавьте это в init.lua ПОСЛЕ настройки neo-tree
+local function fix_neo_tree_width()
+	local winid = vim.api.nvim_get_current_win()
+	local buf = vim.api.nvim_win_get_buf(winid)
+	if vim.bo[buf].filetype == "neo-tree" then
+		vim.api.nvim_win_set_width(winid, 30)
+	end
+end
+
+-- Срабатывает при ЛЮБОМ входе в окно
+vim.api.nvim_create_autocmd("WinEnter", {
+	callback = fix_neo_tree_width,
+})
+
+-- Также при изменении размера окна
+vim.api.nvim_create_autocmd("WinResized", {
+	callback = function()
+		-- Проверяем ВСЕ окна, потому что WinResized не даёт winid
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			local buf = vim.api.nvim_win_get_buf(win)
+			if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == "neo-tree" then
+				vim.api.nvim_win_set_width(win, 30)
+			end
 		end
 	end,
 })
