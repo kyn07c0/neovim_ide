@@ -344,4 +344,22 @@ vim.api.nvim_create_autocmd("BufEnter", {
 	desc = "Предупреждение о длинных строках",
 })
 
+------------- ОКНА -------------
+
+-- Защищаем neo-tree от изменения ширины
+vim.api.nvim_create_autocmd("WinEnter", {
+	callback = function()
+		local buf = vim.api.nvim_get_current_buf()
+		local ft = vim.bo[buf].filetype
+		if ft == "neo-tree" then
+			local win = vim.api.nvim_get_current_win()
+			local width = vim.api.nvim_win_get_width(win)
+			if width ~= 30 then
+				vim.api.nvim_win_set_width(win, 30)
+			end
+			vim.cmd("wincmd H")
+		end
+	end,
+})
+
 print("✓ Автокоманды загружены")

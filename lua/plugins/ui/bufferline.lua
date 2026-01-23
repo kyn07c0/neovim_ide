@@ -17,9 +17,9 @@ return {
 				mode = "buffers", -- показываем буферы, а не табы
 				themable = true,
 				numbers = "ordinal", -- номера буферов (1, 2, 3...)
-				close_command = "bdelete! %d", -- команда закрытия
-				right_mouse_command = "bdelete! %d",
-				middle_mouse_command = nil,
+				--close_command = "bdelete! %d", -- команда закрытия
+				--right_mouse_command = "bdelete! %d",
+				--middle_mouse_command = nil,
 
 				indicator = {
 					icon = "▎", -- индикатор активного буфера
@@ -79,6 +79,62 @@ return {
 
 				separator_style = "slant", -- или "thick", "thin", "slope"
 				always_show_bufferline = true,
+
+				-- Клавиши для закрытия
+				close_command = function(bufnum)
+					local buf_info = vim.fn.getbufinfo(bufnum)[1]
+					if buf_info and buf_info.changed == 1 then
+						vim.notify(
+							"Буфер имеет несохраненные изменения!",
+							vim.log.levels.WARN
+						)
+						return
+					end
+
+					-- Получаем список всех listed буферов ДО закрытия
+					local bufs_before = {}
+					for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+						if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
+							table.insert(bufs_before, buf)
+						end
+					end
+
+					-- Закрываем буфер
+					vim.cmd("silent! bdelete " .. bufnum)
+
+					-- Откладываем обработку, чтобы дать Neovim обновить состояние
+					vim.defer_fn(function()
+						-- Собираем валидные listed буферы ПОСЛЕ закрытия
+						local valid_buffers = {}
+						for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+							if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
+								table.insert(valid_buffers, buf)
+							end
+						end
+
+						if #valid_buffers == 0 then
+							-- Нет буферов — открываем neo-tree и фокусим его
+							vim.cmd("Neotree show")
+							-- Убедимся, что neo-tree слева и фиксированной ширины
+							vim.cmd("wincmd H") -- переместить текущее окно влево
+						else
+							-- Есть другие буферы — просто переключаемся на следующий
+							-- BufferLineCycleNext работает, но может не сработать, если буфер уже закрыт
+							-- Лучше использовать встроенную команду
+							vim.cmd("BufferLineCycleNext")
+						end
+					end, 10)
+				end,
+
+				-- Правая клавиша мыши для закрытия
+				right_mouse_command = function(bufnum)
+					require("bufferline").close_command(bufnum)
+				end,
+
+				-- Клавиша средней кнопки мыши для закрытия
+				middle_mouse_command = function(bufnum)
+					require("bufferline").close_command(bufnum)
+				end,
 			},
 		})
 

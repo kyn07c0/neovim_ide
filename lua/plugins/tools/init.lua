@@ -15,4 +15,6 @@ return {
 	require("plugins.tools.todo-comments"),
 	-- Анализ времени запуска Neovim
 	require("plugins.tools.startuptime"),
+	-- AI
+	require("plugins.tools.codecompanion"),
 }

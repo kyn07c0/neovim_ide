@@ -34,6 +34,7 @@ opt.splitright = true -- Новые окна справа
 opt.splitbelow = true -- Новые окна снизу
 opt.scrolloff = 8 -- Минимальное количество строк выше/ниже курсора
 opt.sidescrolloff = 5 -- Минимальное количество колонок слева/справа от курсора
+opt.equalalways = false -- Отключение автоматического выравнивания окон
 opt.wrap = false -- Не переносить длинные строки
 
 opt.lazyredraw = true -- Ленивая перерисовка

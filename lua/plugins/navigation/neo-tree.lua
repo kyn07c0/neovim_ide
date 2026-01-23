@@ -53,8 +53,10 @@ return {
 
 				window = {
 					position = "left",
-					width = 30,
-					auto_expand_width = false,
+					width = 30, -- Постоянная ширина в 30 колонок
+					auto_expand_width = false, -- Отключаем авто-расширение
+					resize_timer_interval = 0, -- Отключаем таймер ресайза
+					preserve_window_proportions = false, -- Запрещаем сохранение пропорций
 					mapping_options = {
 						noremap = true,
 						nowait = true,
@@ -162,6 +164,35 @@ return {
 						staged = "",
 						conflict = "",
 					},
+				},
+			},
+
+			window = {
+				position = "left",
+				width = 30,
+				auto_expand_width = false,
+				resize_timer_interval = 0,
+				preserve_window_proportions = false,
+				mapping_options = {
+					noremap = true,
+					nowait = true,
+				},
+				-- Ключевое: не закрывать neo-tree, даже если это последнее окно
+				-- (но мы сами будем управлять этим через bufferline)
+			},
+
+			-- Также добавьте в корень setup:
+			event_handlers = {
+				{
+					event = "neo_tree_buffer_enter",
+					handler = function()
+						-- Получаем текущее окно neo-tree
+						local winid = vim.api.nvim_get_current_win()
+						-- Устанавливаем ширину в 30 колонок
+						vim.api.nvim_win_set_width(winid, 30)
+						-- При входе в neo-tree — фиксируем его слева
+						vim.cmd("wincmd H")
+					end,
 				},
 			},
 		})
