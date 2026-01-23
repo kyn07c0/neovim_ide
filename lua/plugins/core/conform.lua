@@ -70,10 +70,10 @@ return {
 			-- Rust
 			rust = { "rustfmt" },
 
-			-- другие языки по желанию
-			-- sql     = { "sqlfluff" },
-			-- html    = { "prettierd" },
-			-- css     = { "prettierd" },
+			-- другие языки
+			sql = { "sqlfluff" },
+			html = { "prettierd" },
+			css = { "prettierd" },
 		},
 
 		-- Настройки конкретных форматтеров (очень полезно для clang-format)
