@@ -13,7 +13,7 @@ opt.shiftwidth = 4 -- Размер отступа для > и <
 opt.softtabstop = 4 -- Количество пробелов при нажатии Tab
 opt.expandtab = false -- Преобразовывать табы в пробелы
 opt.smartindent = true -- Умные отступы
-vim.opt.smarttab = true -- Умные табы
+opt.smarttab = true -- Умные табы
 opt.autoindent = true -- Автоматические отступы
 
 ---------- ПОИСК ----------
@@ -33,8 +33,14 @@ opt.showtabline = 2 -- Всегда показывать вкладки
 opt.splitright = true -- Новые окна справа
 opt.splitbelow = true -- Новые окна снизу
 opt.scrolloff = 8 -- Минимальное количество строк выше/ниже курсора
-opt.sidescrolloff = 8 -- Минимальное количество колонок слева/справа от курсора
+opt.sidescrolloff = 5 -- Минимальное количество колонок слева/справа от курсора
 opt.wrap = false -- Не переносить длинные строки
+
+opt.lazyredraw = true -- Ленивая перерисовка
+opt.redrawtime = 1500 -- Максимальное время перерисовки
+opt.ttyfast = true -- Ускорение вывода в терминал
+opt.sidescroll = 1 -- Минимальное количество строк для горизонтального скроллинга
+opt.scrolljump = 5 -- Количество строк для прыжка при скроллинге
 
 ---------- МЫШЬ ----------
 opt.mouse = "a" -- Включить мышь во всех режимах
@@ -47,8 +53,8 @@ opt.undofile = true -- Сохранять историю изменений
 opt.swapfile = false -- Не создавать swap файлы
 opt.backup = false -- Не создавать backup файлы
 opt.writebackup = false -- Не создавать backup перед записью
-opt.updatetime = 250 -- Частота обновления (мс)
-opt.timeoutlen = 300 -- Таймаут для маппингов (мс)
+opt.updatetime = 300 -- Частота обновления (мс)
+opt.timeoutlen = 500 -- Таймаут для маппингов (мс)
 
 ---------- АВТОЗАВЕРШЕНИЕ ----------
 opt.completeopt = { "menuone", "noselect", "noinsert" }
