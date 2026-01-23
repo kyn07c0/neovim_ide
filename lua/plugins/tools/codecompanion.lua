@@ -15,7 +15,16 @@ return {
 				return require("codecompanion.adapters").extend("ollama", {
 					schema = {
 						model = {
-							default = "qwen2.5-coder:32b", -- или deepseek-coder-v2, codestral, llama3.3-70b и т.д.
+							default = "qwen3:30b-a3b", -- или deepseek-coder-v2, codestral, llama3.3-70b и т.д.
+						},
+						-- Очень важно для Qwen3 — увеличить контекст, если память позволяет
+						num_ctx = {
+							default = 32768, -- или 65536 / 128000 если ≥24–32 GB VRAM
+						},
+
+						-- Опционально: температура ниже → код более предсказуемый
+						temperature = {
+							default = 0.6,
 						},
 					},
 					-- env = { url = "http://127.0.0.1:11434" },  -- по умолчанию так
@@ -45,7 +54,7 @@ return {
 		-- Какой адаптер использовать по умолчанию в чате
 		strategies = {
 			chat = {
-				adapter = "ollama", -- ← поменяй на "anthropic" / "copilot" при желании
+				adapter = "ollama",
 			},
 			inline = {
 				adapter = "ollama",
@@ -79,6 +88,16 @@ return {
 		opts = {
 			log_level = vim.log.levels.WARN, -- DEBUG если хочешь отлаживать
 			language = "Русский", -- подсказки на русском (если модель поддерживает)
+
+			-- Qwen3 любит чёткие системные промпты
+			system_prompt = function(opts)
+				return [[
+Ты — эксперт по программированию. Отвечай кратко, точно и по делу.
+Используй markdown для форматирования кода.
+Если нужно — предлагай правки через ```diff
+Всегда думай шаг за шагом перед ответом.
+]]
+			end,
 		},
 	},
 
