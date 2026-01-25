@@ -10,10 +10,10 @@ return {
 		"3rd/image.nvim", -- preview изображений (опционально)
 	},
 	cmd = "Neotree",
-	keys = {
-		{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle Neo-tree" },
-		{ "<leader>o", "<cmd>Neotree focus<cr>", desc = "Focus Neo-tree" },
-	},
+		keys = {
+			{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle Neo-tree" },
+			{ "<leader>o", "<cmd>Neotree focus<cr>", desc = "Focus Neo-tree" },
+		},
 
 	config = function()
 		require("neo-tree").setup({
@@ -44,7 +44,6 @@ return {
 				cwd_target = {
 					sidebar = "tab",
 				},
-				bind_to_cwd = false,
 
 				-- Группировка пустых директорий
 				group_empty_dirs = false,

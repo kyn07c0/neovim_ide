@@ -209,4 +209,128 @@ map("n", "]d", vim.diagnostic.get_next, { desc = "Следующая диагн�
 map("n", "Q", "@q", { desc = "Выполнить макрос q" })
 map("x", "Q", ":norm @q<cr>", { desc = "Выполнить макрос q на выделении" })
 
+---------- ПЛАГИНЫ ----------
+
+---------- LSP ----------
+map("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
+map("n", "gD", vim.lsp.buf.declaration, { desc = "Go to declaration" })
+map("n", "gi", vim.lsp.buf.implementation, { desc = "Go to implementation" })
+map("n", "gr", vim.lsp.buf.references, { desc = "References" })
+map("n", "K", vim.lsp.buf.hover, { desc = "Hover documentation" })
+map("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Rename symbol" })
+map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code action" })
+map("n", "<leader>dd", vim.diagnostic.open_float, { desc = "Show diagnostic" })
+map("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
+map("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+
+---------- TELESCOPE ----------
+map("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Find files" })
+map("n", "<leader>fg", "<cmd>Telescope live_grep<cr>", { desc = "Live grep" })
+map("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "Buffers" })
+map("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Help tags" })
+map("n", "<leader>fs", "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", { desc = "Workspace symbols" })
+map("n", "<leader>fd", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "Document symbols" })
+map("n", "<leader>fu", "<cmd>Telescope undo<cr>", { desc = "Undo history" })
+map("n", "<leader>fp", "<cmd>Telescope projects<cr>", { desc = "Projects" })
+
+---------- DAP (Отладка) ----------
+map("n", "<F5>", function()
+	require("dap").continue()
+end, { desc = "Debug: continue" })
+map("n", "<F10>", function()
+	require("dap").step_over()
+end, { desc = "Debug: step over" })
+map("n", "<F11>", function()
+	require("dap").step_into()
+end, { desc = "Debug: step into" })
+map("n", "<F12>", function()
+	require("dap").step_out()
+end, { desc = "Debug: step out" })
+map("n", "<leader>db", function()
+	require("dap").toggle_breakpoint()
+end, { desc = "Debug: toggle breakpoint" })
+map("n", "<leader>du", function()
+	require("dapui").toggle()
+end, { desc = "Debug: toggle UI" })
+map("n", "<leader>dr", function()
+	require("dap").repl.toggle()
+end, { desc = "Debug: toggle REPL" })
+map("n", "<leader>dc", "<cmd>Telescope dap commands<cr>", { desc = "DAP commands" })
+map("n", "<leader>dbp", "<cmd>Telescope dap list_breakpoints<cr>", { desc = "DAP breakpoints" })
+
+---------- NEO-TREE ----------
+map("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "Toggle file explorer" })
+map("n", "<leader>o", "<cmd>Neotree focus<cr>", { desc = "Focus file explorer" })
+
+---------- BUFFERLINE ----------
+map("n", "<Tab>", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
+map("n", "<S-Tab>", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
+map("n", "<leader>tn", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
+map("n", "<leader>tp", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
+
+---------- TREESITTER ----------
+map("n", "gnn", function()
+	require("nvim-treesitter.incremental_selection").init_selection()
+end, { desc = "Start selection" })
+map("n", "grn", function()
+	require("nvim-treesitter.incremental_selection").node_incremental()
+end, { desc = "Increment selection" })
+map("n", "grm", function()
+	require("nvim-treesitter.incremental_selection").node_decremental()
+end, { desc = "Decrement selection" })
+map("n", "grc", function()
+	require("nvim-treesitter.incremental_selection").scope_incremental()
+end, { desc = "Scope selection" })
+
+---------- CONFORM (Форматирование) ----------
+map({ "n", "v" }, "<leader>cf", function()
+	require("conform").format({ async = true, lsp_format = "fallback" })
+end, { desc = "Format buffer" })
+
+---------- TODO-COMMENTS ----------
+map("n", "]c", function()
+	require("todo-comments").jump_next()
+end, { desc = "Next todo comment" })
+map("n", "[c", function()
+	require("todo-comments").jump_prev()
+end, { desc = "Previous todo comment" })
+map("n", "<leader>ft", "<cmd>TodoTelescope<cr>", { desc = "Todo telescope" })
+
+---------- GITSIGNS ----------
+map("n", "]h", function()
+	require("gitsigns").next_hunk()
+end, { desc = "Next git hunk" })
+map("n", "[h", function()
+	require("gitsigns").prev_hunk()
+end, { desc = "Previous git hunk" })
+map({ "n", "v" }, "<leader>hs", "<cmd>Gitsigns stage_hunk<cr>", { desc = "Stage hunk" })
+map({ "n", "v" }, "<leader>hr", "<cmd>Gitsigns reset_hunk<cr>", { desc = "Reset hunk" })
+
+---------- CMakeTools ----------
+map("n", "<leader>cg", function()
+	require("cmake-tools").generate()
+end, { desc = "CMake generate" })
+map("n", "<leader>cb", function()
+	require("cmake-tools").build()
+end, { desc = "CMake build" })
+map("n", "<leader>cr", function()
+	require("cmake-tools").run()
+end, { desc = "CMake run" })
+map("n", "<leader>cd", "<cmd>CMakeDebug<cr>", { desc = "CMake debug" })
+map("n", "<leader>cc", "<cmd>CMakeClean<cr>", { desc = "CMake Clean" })
+map("n", "<leader>ct", "<cmd>CMakeSelectTarget<cr>", { desc = "Select Target" })
+map("n", "<leader>co", "<cmd>CMakeOpen<cr>", { desc = "Open CMake console" })
+map("n", "<leader>cx", "<cmd>CMakeClose<cr>", { desc = "Close CMake console" })
+
+---------- UFO (Folding) ----------
+map("n", "zR", function()
+	require("ufo").openAllFolds()
+end, { desc = "Open all folds" })
+map("n", "zM", function()
+	require("ufo").closeAllFolds()
+end, { desc = "Close all folds" })
+
+---------- EASY-ALIGN ----------
+map({ "n", "x" }, "ga", "<Plug>(EasyAlign)", { desc = "Easy align" })
+
 print("✓ Глобальные клавиши загружены")

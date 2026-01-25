@@ -43,12 +43,12 @@ return {
 		end
 
 		-- Выравнивание по регулярным выражениям
-		vim.keymap.set("n", "g\\", function()
-			local pattern = vim.fn.input("Pattern to align by: ")
-			if pattern ~= "" then
-				vim.cmd("EasyAlign " .. pattern)
-			end
-		end, { desc = "Align by custom pattern" })
+		--		vim.keymap.set("n", "g\\", function()
+		--			local pattern = vim.fn.input("Pattern to align by: ")
+		--			if pattern ~= "" then
+		--				vim.cmd("EasyAlign " .. pattern)
+		--			end
+		--		end, { desc = "Align by custom pattern" })
 	end,
 
 	config = function()

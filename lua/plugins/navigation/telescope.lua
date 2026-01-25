@@ -10,8 +10,8 @@ return {
 			build = "make", -- или "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build" если make не работает
 		},
 		"nvim-telescope/telescope-ui-select.nvim",
-        "debugloop/telescope-undo.nvim",  -- Для undo history
-        "ahmedkhalf/project.nvim",        -- Для управления проектами
+		"debugloop/telescope-undo.nvim", -- Для undo history
+		"ahmedkhalf/project.nvim", -- Для управления проектами
 	},
 
 	config = function()
@@ -68,26 +68,26 @@ return {
 		-- Загружаем расширения (это активирует fzf-сортеры)
 		telescope.load_extension("fzf")
 		telescope.load_extension("ui-select")
-        telescope.load_extension("undo")
-        telescope.load_extension("projects")
-        telescope.load_extension("frecency")
+		telescope.load_extension("undo")
+		telescope.load_extension("projects")
+		telescope.load_extension("frecency")
 
 		-- Горячие клавиши (leader = space)
-		local map = vim.keymap.set
-		map("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
-		map("n", "<leader>fg", builtin.live_grep, { desc = "Live grep" })
-		map("n", "<leader>fb", builtin.buffers, { desc = "Buffers" })
-		map("n", "<leader>fh", builtin.help_tags, { desc = "Help tags" })
-        map("n", "<leader>fu", "<cmd>Telescope undo<cr>", { desc = "Undo history" })
-        map("n", "<leader>fp", "<cmd>Telescope projects<cr>", { desc = "Projects" })
+		--		local map = vim.keymap.set
+		--		map("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
+		--		map("n", "<leader>fg", builtin.live_grep, { desc = "Live grep" })
+		--		map("n", "<leader>fb", builtin.buffers, { desc = "Buffers" })
+		--		map("n", "<leader>fh", builtin.help_tags, { desc = "Help tags" })
+		--        map("n", "<leader>fu", "<cmd>Telescope undo<cr>", { desc = "Undo history" })
+		--        map("n", "<leader>fp", "<cmd>Telescope projects<cr>", { desc = "Projects" })
 
 		-- LSP (очень полезно в C++)
-		map("n", "<leader>fs", builtin.lsp_dynamic_workspace_symbols, { desc = "Workspace symbols" })
-		map("n", "<leader>fd", builtin.lsp_document_symbols, { desc = "Document symbols" })
-		map("n", "<leader>flr", builtin.lsp_references, { desc = "References" })
-		map("n", "<leader>fi", builtin.lsp_implementations, { desc = "Implementations" })
+		--		map("n", "<leader>fs", builtin.lsp_dynamic_workspace_symbols, { desc = "Workspace symbols" })
+		--		map("n", "<leader>fd", builtin.lsp_document_symbols, { desc = "Document symbols" })
+		--		map("n", "<leader>flr", builtin.lsp_references, { desc = "References" })
+		--		map("n", "<leader>fi", builtin.lsp_implementations, { desc = "Implementations" })
 
 		-- Git
-		map("n", "<leader>glc", builtin.git_commits, { desc = "Git commits" })
+		--		map("n", "<leader>glc", builtin.git_commits, { desc = "Git commits" })
 	end,
 }

@@ -110,20 +110,20 @@ return {
 		require("dap-go").setup()
 
 		-- Горячие клавиши для отладки (можно вынести в отдельный файл)
-		local opts = { noremap = true, silent = true }
-		vim.keymap.set("n", "<F5>", dap.continue, opts)
-		vim.keymap.set("n", "<F10>", dap.step_over, opts)
-		vim.keymap.set("n", "<F11>", dap.step_into, opts)
-		vim.keymap.set("n", "<F12>", dap.step_out, opts)
-		vim.keymap.set("n", "<leader>db", dap.toggle_breakpoint, opts)
-		vim.keymap.set("n", "<leader>B", function()
-			dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
-		end, opts)
-		vim.keymap.set("n", "<leader>dr", dap.repl.toggle, opts)
-		vim.keymap.set("n", "<leader>du", dapui.toggle, opts)
+		--local opts = { noremap = true, silent = true }
+		--vim.keymap.set("n", "<F5>", dap.continue, opts)
+		--vim.keymap.set("n", "<F10>", dap.step_over, opts)
+		--vim.keymap.set("n", "<F11>", dap.step_into, opts)
+		--vim.keymap.set("n", "<F12>", dap.step_out, opts)
+		--vim.keymap.set("n", "<leader>db", dap.toggle_breakpoint, opts)
+		--vim.keymap.set("n", "<leader>B", function()
+		--			dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
+		--end, opts)
+		--vim.keymap.set("n", "<leader>dr", dap.repl.toggle, opts)
+		--vim.keymap.set("n", "<leader>du", dapui.toggle, opts)
 
 		-- Горячие клавиши для Telescope DAP
-		vim.keymap.set("n", "<leader>dc", "<cmd>Telescope dap commands<cr>", { desc = "DAP commands" })
-		vim.keymap.set("n", "<leader>dbp", "<cmd>Telescope dap list_breakpoints<cr>", { desc = "DAP breakpoints" })
+		--vim.keymap.set("n", "<leader>dc", "<cmd>Telescope dap commands<cr>", { desc = "DAP commands" })
+		--vim.keymap.set("n", "<leader>dbp", "<cmd>Telescope dap list_breakpoints<cr>", { desc = "DAP breakpoints" })
 	end,
 }

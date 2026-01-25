@@ -101,30 +101,30 @@ return {
 		end
 
 		-- Горячие клавиши с гарантированным открытием консоли
-		vim.keymap.set("n", "<leader>cg", function()
-			ensure_console_open_and_execute(function()
-				cmake.generate({})
-			end, "Генерация CMake...")
-		end, { desc = "CMake Generate" })
+		--		vim.keymap.set("n", "<leader>cg", function()
+		--			ensure_console_open_and_execute(function()
+		--				cmake.generate({})
+		--			end, "Генерация CMake...")
+		--		end, { desc = "CMake Generate" })
 
-		vim.keymap.set("n", "<leader>cb", function()
-			ensure_console_open_and_execute(function()
-				cmake.build({})
-			end, "Сборка проекта...")
-		end, { desc = "CMake Build" })
+		--		vim.keymap.set("n", "<leader>cb", function()
+		--			ensure_console_open_and_execute(function()
+		--				cmake.build({})
+		--			end, "Сборка проекта...")
+		--		end, { desc = "CMake Build" })
 
-		vim.keymap.set("n", "<leader>cr", function()
-			ensure_console_open_and_execute(function()
-				cmake.run({})
-			end, "Запуск проекта...")
-		end, { desc = "CMake Run" })
+		--		vim.keymap.set("n", "<leader>cr", function()
+		--			ensure_console_open_and_execute(function()
+		--				cmake.run({})
+		--			end, "Запуск проекта...")
+		--		end, { desc = "CMake Run" })
 
 		-- Другие команды без консоли
-		vim.keymap.set("n", "<leader>cd", "<cmd>CMakeDebug<cr>", { desc = "CMake Debug" })
-		vim.keymap.set("n", "<leader>cc", "<cmd>CMakeClean<cr>", { desc = "CMake Clean" })
-		vim.keymap.set("n", "<leader>ct", "<cmd>CMakeSelectTarget<cr>", { desc = "Select Target" })
-		vim.keymap.set("n", "<leader>co", "<cmd>CMakeOpen<cr>", { desc = "Open CMake console" })
-		vim.keymap.set("n", "<leader>cx", "<cmd>CMakeClose<cr>", { desc = "Close CMake console" })
+		--		vim.keymap.set("n", "<leader>cd", "<cmd>CMakeDebug<cr>", { desc = "CMake Debug" })
+		--		vim.keymap.set("n", "<leader>cc", "<cmd>CMakeClean<cr>", { desc = "CMake Clean" })
+		--		vim.keymap.set("n", "<leader>ct", "<cmd>CMakeSelectTarget<cr>", { desc = "Select Target" })
+		--		vim.keymap.set("n", "<leader>co", "<cmd>CMakeOpen<cr>", { desc = "Open CMake console" })
+		--		vim.keymap.set("n", "<leader>cx", "<cmd>CMakeClose<cr>", { desc = "Close CMake console" })
 
 		-- Автоматически обновлять compile_commands.json
 		vim.api.nvim_create_autocmd("User", {
