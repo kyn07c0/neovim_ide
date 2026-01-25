@@ -113,7 +113,7 @@ return {
 				-- Отключаем форматирование от LSP для C/C++ (используем conform.nvim)
 				if vim.bo.filetype == "cpp" or vim.bo.filetype == "c" then
 					client.server_capabilities.documentFormattingProvider = false
-					print("LSP форматирование отключено для C/C++")
+					--print("LSP форматирование отключено для C/C++")
 				end
 			end,
 		})
