@@ -16,11 +16,63 @@ return {
 	},
 
 	config = function()
+		-- Получаем диагностику из LSP
+		local get_diagnostics = function(bufnr)
+			if not bufnr then
+				return {}
+			end
+
+			local diagnostics = vim.diagnostic.get(bufnr)
+			local result = {
+				errors = 0,
+				warnings = 0,
+				info = 0,
+				hints = 0,
+			}
+
+			for _, diag in ipairs(diagnostics) do
+				if diag.severity == vim.diagnostic.severity.ERROR then
+					result.errors = result.errors + 1
+				elseif diag.severity == vim.diagnostic.severity.WARN then
+					result.warnings = result.warnings + 1
+				elseif diag.severity == vim.diagnostic.severity.INFO then
+					result.info = result.info + 1
+				elseif diag.severity == vim.diagnostic.severity.HINT then
+					result.hints = result.hints + 1
+				end
+			end
+
+			return result
+		end
+
 		require("neo-tree").setup({
 			close_if_last_window = false,
 			popup_border_style = "rounded",
 			enable_git_status = true,
 			enable_diagnostics = true,
+
+			-- Настройки диагностики
+			diagnostics = {
+				enable = true,
+				show_on_dirs = true,
+				show_on_open_dirs = true,
+				severity = {
+					min = vim.diagnostic.severity.HINT,
+					max = vim.diagnostic.severity.ERROR,
+				},
+				icons = {
+					hint = "󰌵",
+					info = "",
+					warn = "",
+					error = "",
+				},
+			},
+
+			-- Кастомная функция для обновления диагностики
+			diagnostic_updated = function()
+				-- Перезагружаем neo-tree при обновлении диагностики
+				require("neo-tree.sources.manager").refresh("filesystem")
+			end,
 
 			filesystem = {
 				filtered_items = {
@@ -163,6 +215,15 @@ return {
 						conflict = "",
 					},
 				},
+				diagnostics = {
+					symbols = {
+						hint = "󰌵",
+						info = "",
+						warn = "",
+						error = "",
+					},
+					highlight = "NeoTreeDiagnostic",
+				},
 			},
 
 			window = {
@@ -185,7 +246,63 @@ return {
 						vim.cmd("wincmd H")
 					end,
 				},
+				-- Обновление при изменении диагностики
+				{
+					event = "diagnostic_changed",
+					handler = function()
+						-- Обновляем neo-tree при изменении диагностики
+						vim.defer_fn(function()
+							require("neo-tree.sources.manager").refresh("filesystem")
+						end, 50)
+					end,
+				},
+				-- Обновление при сохранении файла
+				{
+					event = "vim_buffer_enter",
+					handler = function()
+						vim.defer_fn(function()
+							require("neo-tree.sources.manager").refresh("filesystem")
+						end, 100)
+					end,
+				},
 			},
+		})
+
+		-- Автоматическое обновление neo-tree при обновлении LSP диагностики
+		vim.api.nvim_create_autocmd("DiagnosticChanged", {
+			callback = function()
+				-- Ждем немного, чтобы диагностика успела обновиться
+				vim.defer_fn(function()
+					-- Обновляем все открытые neo-tree
+					for _, source in ipairs({ "filesystem", "buffers" }) do
+						pcall(function()
+							require("neo-tree.sources.manager").refresh(source)
+						end)
+					end
+				end, 100)
+			end,
+		})
+
+		-- Обновление при сохранении файла
+		vim.api.nvim_create_autocmd("BufWritePost", {
+			callback = function()
+				vim.defer_fn(function()
+					pcall(function()
+						require("neo-tree.sources.manager").refresh("filesystem")
+					end)
+				end, 200) -- Даем время clangd на анализ
+			end,
+		})
+
+		-- Обновление при выходе из режима вставки (где часто исправляются ошибки)
+		vim.api.nvim_create_autocmd("InsertLeave", {
+			callback = function()
+				vim.defer_fn(function()
+					pcall(function()
+						require("neo-tree.sources.manager").refresh("filesystem")
+					end)
+				end, 300)
+			end,
 		})
 	end,
 }

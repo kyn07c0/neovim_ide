@@ -6,9 +6,10 @@ return {
 	dependencies = {
 		"williamboman/mason.nvim",
 		"williamboman/mason-lspconfig.nvim",
+		"hrsh7th/cmp-nvim-lsp",
 	},
 	config = function()
-		local capabilities = require("cmp_nvim_lsp").default_capabilities(capabilities)
+		local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 		-- Настраиваем clangd через vim.lsp.config
 		vim.lsp.config("clangd", {
@@ -16,16 +17,21 @@ return {
 
 			cmd = {
 				"clangd",
-				"--background-index",
+				"--background-index", -- Фоновое индексирование ВСЕХ файлов
 				"--clang-tidy",
 				"--header-insertion=iwyu",
 				"--completion-style=detailed",
 				"--fallback-style=llvm",
+				"--all-scopes-completion", -- Автодополнение из всех файлов
+				"--cross-file-rename", -- Переименование работает между файлами
+				"--compile-commands-dir=build", -- Путь к compile_commands.json
+				"--function-arg-placeholders",
 				"--query-driver=/usr/bin/g++", -- компилятор
 				"--offset-encoding=utf-8", -- Явно указываем кодировку
 				"--pch-storage=memory", -- Оптимизация для больших проектов
 				"--malloc-trim", -- Освобождение памяти
 				"--pretty", -- Красивый вывод
+				"--limit-results=0", -- Без ограничений результатов
 			},
 
 			-- fallback-флаги, если нет compile_commands.json
@@ -37,8 +43,20 @@ return {
 					"-I/usr/include/libnl3",
 				},
 				clangdFileStatus = true,
-				usePlaceholders = false,
+				usePlaceholders = true,
+				completeUnimported = true, -- Дополнение из неимпортированных файлов
+				backgroundIndex = true, -- Включить фоновое индексирование
 			},
+
+			-- Анализировать весь проект
+			root_dir = function(fname)
+				return require("lspconfig.util").root_pattern(
+					"compile_commands.json",
+					".git",
+					"CMakeLists.txt",
+					"Makefile"
+				)(fname) or vim.fn.getcwd()
+			end,
 
 			-- filetypes остаются те же
 			filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
