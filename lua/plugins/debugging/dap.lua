@@ -12,28 +12,39 @@ return {
 	},
 
 	config = function()
-		local dap = require("dap")
-		local dapui = require("dapui")
+		-- Загружаем модули с проверкой
+		local dap_ok, dap = pcall(require, "dap")
+		if not dap_ok then
+			vim.notify("nvim-dap не загружен", vim.log.levels.ERROR)
+			return
+		end
+
+		local dapui_ok, dapui = pcall(require, "dapui")
+		if not dapui_ok then
+			vim.notify("dap-ui не загружен", vim.log.levels.ERROR)
+			return
+		end
 
 		-- Автоустановка codelldb через mason-nvim-dap
-		require("mason-nvim-dap").setup({
-			ensure_installed = { "codelldb" }, -- устанавливаем codelldb автоматически
-			automatic_installation = true,
-			handlers = {}, -- используем дефолтные обработчики (рекомендуется)
-		})
-
-		-- Настройка адаптера codelldb (mason-nvim-dap сам подхватит путь)
-		dap.adapters.codelldb = function(callback)
-			callback({
-				type = "server",
-				port = "${port}",
-				host = "127.0.0.1",
-				executable = {
-					command = "codelldb", -- mason добавит в PATH
-					args = { "--port", "${port}" },
-				},
+		local mason_dap_ok, mason_dap = pcall(require, "mason-nvim-dap")
+		if mason_dap_ok then
+			mason_dap.setup({
+				ensure_installed = { "codelldb" }, -- устанавливаем codelldb автоматически
+				automatic_installation = true,
+				handlers = {}, -- используем дефолтные обработчики (рекомендуется)
 			})
 		end
+
+		-- Настройка адаптера codelldb
+		dap.adapters.codelldb = {
+			type = "server",
+			port = "${port}",
+			host = "127.0.0.1",
+			executable = {
+				command = "codelldb", -- mason добавит в PATH
+				args = { "--port", "${port}" },
+			},
+		}
 
 		-- Конфигурация запуска для C++ (launch: запуск программы)
 		dap.configurations.cpp = {
@@ -68,17 +79,65 @@ return {
 
 		-- UI настройка (автооткрытие/закрытие при debug)
 		dapui.setup({
+			icons = {
+				expanded = "▾",
+				collapsed = "▸",
+				current_frame = "▸",
+			},
+			mappings = {
+				expand = { "<CR>", "<2-LeftMouse>" },
+				open = "o",
+				remove = "d",
+				edit = "e",
+				repl = "r",
+				toggle = "t",
+			},
 			layouts = {
 				{
-					elements = { "scopes", "breakpoints", "stacks", "watches" },
+					elements = {
+						{ id = "scopes", size = 0.25 },
+						{ id = "breakpoints", size = 0.25 },
+						{ id = "stacks", size = 0.25 },
+						{ id = "watches", size = 0.25 },
+					},
 					size = 40,
 					position = "left",
 				},
 				{
-					elements = { "repl", "console" },
+					elements = {
+						{ id = "repl", size = 0.5 },
+						{ id = "console", size = 0.5 },
+					},
 					size = 0.25,
 					position = "bottom",
 				},
+			},
+			controls = {
+				enabled = true,
+				element = "repl",
+				icons = {
+					pause = "⏸",
+					play = "▶",
+					step_into = "⏬",
+					step_over = "⏭",
+					step_out = "⏮",
+					step_back = "⏪",
+					run_last = "⏯",
+					terminate = "⏹",
+				},
+			},
+			floating = {
+				max_height = nil,
+				max_width = nil,
+				border = "single",
+				mappings = {
+					close = { "q", "<Esc>" },
+				},
+			},
+			windows = { indent = 1 },
+			render = {
+				max_type_length = nil,
+				max_value_lines = 100,
 			},
 		})
 
@@ -94,20 +153,29 @@ return {
 		end
 
 		-- Виртуальный текст (значения переменных в коде)
-		require("nvim-dap-virtual-text").setup({
-			enabled = true,
-			enabled_commands = true,
-			highlight_changed_variables = true,
-			highlight_new_as_changed = true,
-			show_stop_reason = true,
-			commented = false,
-		})
+		local dap_virtual_text_ok = pcall(require, "nvim-dap-virtual-text")
+		if dap_virtual_text_ok then
+			require("nvim-dap-virtual-text").setup({
+				enabled = true,
+				enabled_commands = true,
+				highlight_changed_variables = true,
+				highlight_new_as_changed = true,
+				show_stop_reason = true,
+				commented = false,
+			})
+		end
 
 		-- Интеграция с Telescope
-		require("telescope").load_extension("dap")
+		local telescope_ok = pcall(require, "telescope")
+		if telescope_ok then
+			require("telescope").load_extension("dap")
+		end
 
 		-- Настройка dap-go (если используете)
-		require("dap-go").setup()
+		local dap_go_ok = pcall(require, "dap-go")
+		if dap_go_ok then
+			require("dap-go").setup()
+		end
 
 		-- Горячие клавиши для отладки (можно вынести в отдельный файл)
 		local opts = { noremap = true, silent = true }
