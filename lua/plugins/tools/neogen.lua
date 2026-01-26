@@ -60,12 +60,12 @@ return {
 		})
 
 		-- Дополнительные клавиши
---		vim.keymap.set("n", "<leader>nf", function()
---			require("neogen").generate({ type = "func" })
---		end, { desc = "Generate function doc" })
+		vim.keymap.set("n", "<leader>nf", function()
+			require("neogen").generate({ type = "func" })
+		end, { desc = "Generate function doc" })
 
---		vim.keymap.set("n", "<leader>nc", function()
---			require("neogen").generate({ type = "class" })
---		end, { desc = "Generate class doc" })
+		vim.keymap.set("n", "<leader>nc", function()
+			require("neogen").generate({ type = "class" })
+		end, { desc = "Generate class doc" })
 	end,
 }
