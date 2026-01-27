@@ -65,13 +65,6 @@ return {
 			},
 		})
 
-		-- Загружаем расширения (это активирует fzf-сортеры)
-		telescope.load_extension("fzf")
-		telescope.load_extension("ui-select")
-		telescope.load_extension("undo")
-		telescope.load_extension("projects")
-		telescope.load_extension("frecency")
-
 		-- Горячие клавиши (leader = space)
 		local map = vim.keymap.set
 		map("n", "<leader>ff", builtin.find_files, { desc = "Find files" })

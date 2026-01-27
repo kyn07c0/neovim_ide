@@ -177,7 +177,7 @@ function M.get_open_buffers()
 				table.insert(buffers, {
 					id = buf,
 					name = name,
-					modified = vim.api.nvim_buf_get_option(buf, "modified"),
+					modified = vim.api.nvim_get_option_value("modified", { buf = buf }),
 				})
 			end
 		end
@@ -310,7 +310,7 @@ function M.format_file()
 	local filetype = vim.bo.filetype
 
 	-- Проверяем наличие LSP
-	local clients = vim.lsp.get_active_clients()
+	local clients = vim.lsp.get_clients()
 	if #clients > 0 then
 		vim.lsp.buf.format({ async = true })
 		return true
