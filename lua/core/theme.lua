@@ -27,8 +27,8 @@ return {
 				statementStyle = { bold = true },
 				typeStyle = {},
 				transparent = false,
-				dimInactive = false,
-				terminalColors = true,
+				dimInactive = true,
+				terminalColors = false,
 				theme = theme_variant,
 
 				colors = {
@@ -51,9 +51,16 @@ return {
 
 					return {
 						Normal = { bg = "none" },
-						NormalFloat = { bg = theme.ui.bg_m1 },
-						FloatBorder = { bg = theme.ui.bg_m1, fg = theme.ui.bg_m3 },
-						FloatTitle = { bg = "none", fg = theme.ui.special },
+						NormalFloat = { bg = "none" },
+						FloatBorder = { bg = "none" },
+						FloatTitle = { bg = "none" },
+						NormalDark = { fg = theme.ui.fg_dim, bg = theme.ui.bg_m3 },
+						LazyNormal = { bg = theme.ui.bg_m3, fg = theme.ui.fg_dim },
+						MasonNormal = { bg = theme.ui.bg_m3, fg = theme.ui.fg_dim },
+						Pmenu = { fg = theme.ui.shade0, bg = theme.ui.bg_p1 },
+						PmenuSel = { fg = "NONE", bg = theme.ui.bg_p2 },
+						PmenuSbar = { bg = theme.ui.bg_m1 },
+						PmenuThumb = { bg = theme.ui.bg_p2 },
 
 						DiagnosticVirtualTextError = { bg = "none" },
 						DiagnosticVirtualTextWarn = { bg = "none" },
@@ -145,6 +152,20 @@ return {
 			})
 
 			vim.cmd.colorscheme("kanagawa-" .. theme_variant)
+
+			-- ПРИНУДИТЕЛЬНАЯ НАСТРОЙКА РАЗДЕЛИТЕЛЕЙ ПОСЛЕ ЗАГРУЗКИ ТЕМЫ
+			vim.defer_fn(function()
+				-- Получаем цвет из палитры
+				local colors = require("kanagawa.colors").setup()
+				local yellow = colors.palette.autumnYellow
+
+				-- Устанавливаем цвет для всех возможных разделителей
+				vim.api.nvim_set_hl(0, "WinSeparator", { fg = yellow })
+				vim.api.nvim_set_hl(0, "VertSplit", { fg = yellow })
+				vim.api.nvim_set_hl(0, "FloatBorder", { fg = yellow })
+
+				print("✓ Разделители установлены: " .. yellow)
+			end, 100)
 
 			-- Простые команды для смены темы
 			vim.api.nvim_create_user_command("KanagawaWave", function()
