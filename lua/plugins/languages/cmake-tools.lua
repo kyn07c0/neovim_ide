@@ -12,9 +12,14 @@ return {
 		local cmake = require("cmake-tools")
 		local M = {}
 		M.runner_args = {} -- Хранилище для аргументов
-		M.run_terminal_bufnr = nil -- ID буфера терминала для запуска
-		M.run_terminal_winid = nil -- ID окна терминала для запуска
 
+		-- Глобальные переменные для общего терминала
+		local shared_terminal_bufnr = nil
+		local shared_terminal_winid = nil
+		M.run_terminal_bufnr = nil -- ID буфера терминала для запуска (для обратной совместимости)
+		M.run_terminal_winid = nil -- ID окна терминала для запуска (для обратной совместимости)
+
+		-- Настраиваем плагин так, чтобы он не создавал свои терминалы
 		cmake.setup({
 			cmake_command = "cmake",
 			cmake_build_directory = "build", -- папка для сборки
@@ -29,7 +34,7 @@ return {
 				by_target = {},
 			},
 
-			-- Окно консоли
+			-- Окно консоли для сборки и генерации
 			cmake_console_size = 20, -- размер консоли снизу
 			cmake_show_console = "always", -- всегда показывать консоль
 			cmake_close_console_on_success = false, -- не закрывать при успехе
@@ -55,141 +60,96 @@ return {
 				short = { show = true },
 				long = { show = true, max_length = 40 },
 			},
+
+			-- Отключаем встроенный запуск программ
+			cmake_runner = {
+				run = false, -- Не использовать встроенный runner
+			},
 		})
 
-		-- Глобальное состояние консоли
-		local console_state = {
-			winid = nil,
-			bufnr = nil,
-			is_open = false,
-		}
-
-		-- Функция для поиска существующего окна консоли CMake
-		local function find_cmake_console_window()
-			-- Сначала проверяем сохраненное состояние
-			if
-				console_state.winid
-				and console_state.bufnr
-				and vim.api.nvim_win_is_valid(console_state.winid)
-				and vim.api.nvim_buf_is_valid(console_state.bufnr)
-			then
-				-- Проверяем, что это действительно окно консоли
-				local bufname = vim.api.nvim_buf_get_name(console_state.bufnr)
-				if bufname:match("CMake Console") then
-					return console_state.winid, console_state.bufnr
-				end
-			end
-
-			-- Ищем среди всех окон
-			for _, winid in ipairs(vim.api.nvim_list_wins()) do
-				if vim.api.nvim_win_is_valid(winid) then
-					local bufnr = vim.api.nvim_win_get_buf(winid)
-					if vim.api.nvim_buf_is_valid(bufnr) then
-						local bufname = vim.api.nvim_buf_get_name(bufnr)
-						local buftype = vim.api.nvim_buf_get_option(bufnr, "buftype")
-
-						if bufname:match("CMake Console") or (buftype == "nofile" and bufname == "") then
-							console_state.winid = winid
-							console_state.bufnr = bufnr
-							console_state.is_open = true
-							return winid, bufnr
-						end
+		-- Создаем единый буфер для всех логов
+		local function get_shared_log_buffer()
+			-- Ищем уже существующий буфер лога
+			for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+				if vim.api.nvim_buf_is_valid(bufnr) then
+					local bufname = vim.api.nvim_buf_get_name(bufnr)
+					-- Ищем по имени
+					if bufname:match("^CMake Shared Log") then
+						return bufnr
 					end
 				end
 			end
-			return nil, nil
+
+			-- Если не нашли, создаем новый буфер
+			local bufnr = vim.api.nvim_create_buf(true, false)
+
+			-- Устанавливаем уникальное имя с временной меткой
+			local timestamp = os.date("%Y%m%d_%H%M%S")
+			local bufname = "CMake Shared Log " .. timestamp
+
+			vim.api.nvim_buf_set_name(bufnr, bufname)
+			vim.api.nvim_set_option_value("buftype", "nofile", { buf = bufnr })
+			vim.api.nvim_set_option_value("swapfile", false, { buf = bufnr })
+			vim.api.nvim_set_option_value("filetype", "log", { buf = bufnr })
+			vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
+			vim.api.nvim_set_option_value("readonly", false, { buf = bufnr })
+
+			-- Добавляем заголовок
+			vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+				"╔══════════════════════════════════════════╗",
+				"║           CMake Shared Log               ║",
+				"║     Все операции в одном окне            ║",
+				"╚══════════════════════════════════════════╝",
+				"",
+				"Создан: " .. os.date("%H:%M:%S"),
+				"",
+			})
+
+			-- Возвращаем режим только для чтения
+			vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
+			vim.api.nvim_set_option_value("readonly", true, { buf = bufnr })
+
+			return bufnr
 		end
 
-		-- Функция для открытия/показа общей консоли
-		local function open_cmake_console()
-			local winid, bufnr = find_cmake_console_window()
+		-- Функция для добавления сообщения в общий лог
+		local function add_to_shared_log(message, is_error)
+			-- Получаем или создаем буфер
+			local bufnr = get_shared_log_buffer()
 
-			if winid then
-				-- Окно уже существует, переключаемся на него
-				if vim.api.nvim_win_is_valid(winid) then
-					vim.api.nvim_set_current_win(winid)
-					vim.cmd("wincmd =")
-					-- Прокручиваем вниз
-					if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
-						vim.api.nvim_buf_call(bufnr, function()
-							vim.cmd("normal! G")
-						end)
-					end
+			if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+				-- Если не удалось получить буфер, просто показываем уведомление
+				if is_error then
+					vim.notify("ОШИБКА: " .. message, vim.log.levels.ERROR)
+				else
+					vim.notify(message, vim.log.levels.INFO)
 				end
-				return winid, bufnr
-			else
-				-- Создаем новое окно консоли
-				vim.cmd("botright split")
-				local new_bufnr = vim.api.nvim_create_buf(true, false) -- Создаем новый буфер
-				local new_winid = vim.api.nvim_get_current_win()
-
-				-- Настраиваем буфер как консоль
-				vim.api.nvim_win_set_buf(new_winid, new_bufnr)
-				vim.api.nvim_buf_set_name(new_bufnr, "CMake Console")
-				vim.api.nvim_buf_set_option(new_bufnr, "buftype", "nofile")
-				vim.api.nvim_buf_set_option(new_bufnr, "bufhidden", "hide")
-				vim.api.nvim_buf_set_option(new_bufnr, "swapfile", false)
-				vim.api.nvim_buf_set_option(new_bufnr, "filetype", "cmake")
-				vim.api.nvim_buf_set_option(new_bufnr, "modifiable", true)
-				vim.api.nvim_buf_set_option(new_bufnr, "readonly", false)
-
-				-- Устанавливаем размер окна
-				vim.api.nvim_win_set_height(new_winid, 15)
-
-				-- Добавляем заголовок
-				vim.api.nvim_buf_set_lines(new_bufnr, 0, -1, false, {
-					"╔══════════════════════════════════════════╗",
-					"║           CMake Console                  ║",
-					"╚══════════════════════════════════════════╝",
-					"",
-				})
-
-				-- Сохраняем состояние
-				console_state.winid = new_winid
-				console_state.bufnr = new_bufnr
-				console_state.is_open = true
-
-				-- Автоматическое обновление состояния при закрытии
-				vim.api.nvim_create_autocmd("WinClosed", {
-					buffer = new_bufnr,
-					once = true,
-					callback = function()
-						console_state.winid = nil
-						console_state.bufnr = nil
-						console_state.is_open = false
-					end,
-				})
-
-				return new_winid, new_bufnr
+				return
 			end
-		end
 
-		-- Функция для добавления сообщения в общую консоль
-		local function add_to_cmake_console(message, is_error)
-			local winid, bufnr = open_cmake_console()
+			local timestamp = os.date("%H:%M:%S")
+			local lines = vim.split(message, "\n")
 
-			if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
-				-- Включаем возможность редактирования
-				vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-				vim.api.nvim_buf_set_option(bufnr, "readonly", false)
+			-- Безопасно добавляем сообщение
+			local success = pcall(function()
+				-- Временно включаем редактирование
+				vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
+				vim.api.nvim_set_option_value("readonly", false, { buf = bufnr })
 
-				local lines = vim.split(message, "\n")
-				local current_lines = vim.api.nvim_buf_line_count(bufnr)
-
-				-- Добавляем разделитель если уже есть содержание
-				if current_lines > 5 then
+				-- Добавляем разделитель если есть предыдущие сообщения
+				local line_count = vim.api.nvim_buf_line_count(bufnr)
+				if line_count > 8 then -- Учитываем заголовочные строки
 					vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
 						"────────────────────────────────────────────",
 					})
 				end
 
-				-- Добавляем временную метку
-				local timestamp = os.date("%H:%M:%S")
+				-- Добавляем основное сообщение
 				vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
 					"[" .. timestamp .. "] " .. (is_error and "❌ " or "✅ ") .. lines[1],
 				})
 
-				-- Добавляем остальные строки
+				-- Добавляем дополнительные строки
 				if #lines > 1 then
 					for i = 2, #lines do
 						vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
@@ -198,148 +158,114 @@ return {
 					end
 				end
 
-				-- Прокручиваем вниз
-				vim.api.nvim_buf_call(bufnr, function()
-					vim.cmd("normal! G")
-				end)
-
-				-- Возвращаем режим только для чтения для безопасности
-				vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
-				vim.api.nvim_buf_set_option(bufnr, "readonly", true)
-			end
-		end
-
-		-- Универсальная функция для выполнения команд с общей консолью
-		local function execute_with_console(action_func, action_name)
-			-- Открываем консоль
-			local winid, bufnr = open_cmake_console()
-			local current_win = vim.api.nvim_get_current_win()
-
-			if winid and bufnr then
-				-- Добавляем сообщение о начале операции
-				add_to_cmake_console("Начало: " .. action_name, false)
-
-				-- Возвращаемся в предыдущее окно
-				if vim.api.nvim_win_is_valid(current_win) then
-					vim.api.nvim_set_current_win(current_win)
+				-- Прокручиваем вниз в окне если оно открыто
+				for _, winid in ipairs(vim.api.nvim_list_wins()) do
+					if vim.api.nvim_win_get_buf(winid) == bufnr then
+						vim.api.nvim_win_call(winid, function()
+							vim.cmd("normal! G")
+						end)
+						break
+					end
 				end
 
-				-- Выполняем действие асинхронно
-				vim.defer_fn(function()
-					local success, result = pcall(action_func)
+				-- Возвращаем режим только для чтения
+				vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
+				vim.api.nvim_set_option_value("readonly", true, { buf = bufnr })
+			end)
 
-					-- Добавляем результат в консоль
-					if success then
-						add_to_cmake_console("Завершено: " .. action_name, false)
-					else
-						add_to_cmake_console("Ошибка: " .. tostring(result), true)
-					end
-				end, 100)
-			else
-				-- Если не удалось открыть консоль, просто выполняем действие
-				action_func()
-				vim.notify(action_name, vim.log.levels.INFO)
+			if not success then
+				-- Если произошла ошибка при записи в буфер, показываем уведомление
+				if is_error then
+					vim.notify("ОШИБКА записи в лог: " .. message, vim.log.levels.ERROR)
+				else
+					vim.notify("Инфо: " .. message, vim.log.levels.INFO)
+				end
 			end
 		end
 
-		-- Функция для поиска существующего окна терминала для запуска
-		local function find_run_terminal_window()
-			-- Проверяем, есть ли сохраненный ID окна и он все еще валиден
+		-- Функция для поиска исполняемого файла
+		local function find_executable(target)
+			local possible_paths = {
+				"./build/" .. target,
+				"./build/Debug/" .. target,
+				"./build/Release/" .. target,
+				"./build/bin/" .. target,
+				"./build/Debug/bin/" .. target,
+				"./build/Release/bin/" .. target,
+				target, -- Возможно уже полный путь
+			}
+
+			for _, path in ipairs(possible_paths) do
+				if vim.fn.executable(path) == 1 then
+					return path
+				end
+				-- Проверяем существование файла (не обязательно исполняемого для Windows)
+				if vim.fn.filereadable(path) == 1 then
+					return path
+				end
+			end
+
+			-- Если не нашли, используем find
+			local handle = io.popen("find build -name '" .. target .. "' -type f 2>/dev/null | head -1")
+			if handle then
+				local found = handle:read("*a"):gsub("%s+$", "")
+				handle:close()
+				if found ~= "" then
+					return found
+				end
+			end
+
+			return nil
+		end
+
+		-- Функция для поиска существующего окна общего терминала
+		local function find_shared_terminal_window()
+			-- Сначала проверяем наш сохраненный терминал
+			if shared_terminal_winid and vim.api.nvim_win_is_valid(shared_terminal_winid) then
+				local bufnr = vim.api.nvim_win_get_buf(shared_terminal_winid)
+				local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
+				if buftype == "terminal" then
+					return shared_terminal_winid, bufnr
+				end
+			end
+
+			-- Проверяем сохраненный ID окна из M (для обратной совместимости)
 			if M.run_terminal_winid and vim.api.nvim_win_is_valid(M.run_terminal_winid) then
 				local bufnr = vim.api.nvim_win_get_buf(M.run_terminal_winid)
-				local buftype = vim.api.nvim_buf_get_option(bufnr, "buftype")
+				local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
 				if buftype == "terminal" then
-					return M.run_terminal_winid, bufnr
+					-- Обновляем наши глобальные переменные
+					shared_terminal_winid = M.run_terminal_winid
+					shared_terminal_bufnr = M.run_terminal_bufnr
+					return shared_terminal_winid, bufnr
 				end
 			end
 
 			-- Ищем среди всех окон
 			for _, winid in ipairs(vim.api.nvim_list_wins()) do
 				local bufnr = vim.api.nvim_win_get_buf(winid)
-				local buftype = vim.api.nvim_buf_get_option(bufnr, "buftype")
-				local bufname = vim.api.nvim_buf_get_name(bufnr)
+				local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
 
-				-- Проверяем, что это терминал и имя буфера содержит сигнатуру запуска
-				if buftype == "terminal" and (bufname:match("term://") or vim.api.nvim_buf_get_name(bufnr) == "") then
-					M.run_terminal_winid = winid
-					M.run_terminal_bufnr = bufnr
-					return winid, bufnr
+				if buftype == "terminal" then
+					-- Проверяем, не является ли это окном консоли CMake
+					local bufname = vim.api.nvim_buf_get_name(bufnr)
+					if not bufname:match("cmake_tools") then
+						-- Сохраняем найденное окно
+						shared_terminal_winid = winid
+						shared_terminal_bufnr = bufnr
+						M.run_terminal_winid = winid
+						M.run_terminal_bufnr = bufnr
+						return winid, bufnr
+					end
 				end
 			end
 
 			return nil, nil
 		end
 
-		-- Функция для корректной очистки терминала
-		local function clear_terminal_and_run(bufnr, winid, command)
-			-- Проверяем валидность входных данных
-			if
-				not winid
-				or not bufnr
-				or not vim.api.nvim_win_is_valid(winid)
-				or not vim.api.nvim_buf_is_valid(bufnr)
-			then
-				-- Просто создаем новый терминал
-				vim.cmd("split")
-				vim.cmd("terminal " .. command)
-				vim.cmd("startinsert")
-
-				M.run_terminal_winid = vim.api.nvim_get_current_win()
-				M.run_terminal_bufnr = vim.api.nvim_get_current_buf()
-				vim.api.nvim_win_set_height(M.run_terminal_winid, 15)
-				return true
-			end
-
-			-- Сохраняем текущее окно
-			local current_win = vim.api.nvim_get_current_win()
-
-			-- Переходим в окно терминала
-			vim.api.nvim_set_current_win(winid)
-
-			-- Выходим из режима вставки если находимся в нем
-			vim.cmd("stopinsert")
-
-			-- Закрываем старое окно
-			vim.api.nvim_win_close(winid, true)
-
-			-- Удаляем старый буфер
-			if vim.api.nvim_buf_is_valid(bufnr) then
-				vim.api.nvim_buf_delete(bufnr, { force = true })
-			end
-
-			-- Создаем новый терминал
-			vim.cmd("split")
-			vim.cmd("terminal " .. command)
-			vim.cmd("startinsert")
-
-			-- Сохраняем новые ID
-			M.run_terminal_winid = vim.api.nvim_get_current_win()
-			M.run_terminal_bufnr = vim.api.nvim_get_current_buf()
-
-			-- Устанавливаем размер окна
-			vim.api.nvim_win_set_height(M.run_terminal_winid, 15)
-
-			-- Возвращаемся в предыдущее окно
-			if vim.api.nvim_win_is_valid(current_win) then
-				vim.api.nvim_set_current_win(current_win)
-			end
-
-			-- Автоматическое удаление при закрытии окна
-			vim.api.nvim_create_autocmd("WinClosed", {
-				buffer = M.run_terminal_bufnr,
-				once = true,
-				callback = function()
-					M.run_terminal_winid = nil
-					M.run_terminal_bufnr = nil
-				end,
-			})
-
-			return true
-		end
-
-		-- Функция для закрытия существующего терминала запуска
-		local function close_run_terminal()
-			local winid, bufnr = find_run_terminal_window()
+		-- Функция для закрытия общего терминала
+		local function close_shared_terminal()
+			local winid, bufnr = find_shared_terminal_window()
 			if winid then
 				-- Останавливаем процесс в терминале
 				local job_id = bufnr and vim.api.nvim_buf_get_var(bufnr, "terminal_job_id")
@@ -356,137 +282,132 @@ return {
 					vim.api.nvim_buf_delete(bufnr, { force = true })
 				end
 
+				-- Очищаем все переменные
+				shared_terminal_winid = nil
+				shared_terminal_bufnr = nil
 				M.run_terminal_winid = nil
 				M.run_terminal_bufnr = nil
 			end
 		end
 
-		-- Функция для принудительного открытия/показа консоли ПЕРЕД действием
-		local function ensure_console_open_and_execute(action_func, action_name)
-			-- Сначала проверяем, есть ли уже окно консоли
-			local winid, bufnr = find_cmake_console_window()
+		-- Функция для запуска программы в общем терминале
+		local function run_in_shared_terminal(cmd, target, args)
+			-- Закрываем старый терминал если он есть
+			close_shared_terminal()
 
-			if winid then
-				-- Окно уже существует, переключаемся на него
-				vim.api.nvim_set_current_win(winid)
-				vim.cmd("wincmd =") -- перераспределить размеры окон
-				-- Прокручиваем вниз, чтобы видеть свежие сообщения
-				vim.api.nvim_buf_call(bufnr, function()
-					vim.cmd("normal! G")
-				end)
-			else
-				-- Окна нет, используем API cmake-tools
-				local cmake_api = require("cmake-tools")
+			-- Сохраняем текущее окно
+			local current_win = vim.api.nvim_get_current_win()
 
-				-- Открываем консоль через API если доступно
-				local success, result = pcall(function()
-					-- Пробуем разные способы открыть консоль
-					if cmake_api.open then
-						cmake_api.open()
-					elseif cmake_api.show_console then
-						cmake_api.show_console()
-					else
-						-- Используем внутреннюю функцию плагина
-						require("cmake-tools.ui").open_console()
-					end
-				end)
+			-- Создаем новое окно терминала
+			vim.cmd("split")
+			vim.cmd("terminal " .. cmd)
+			vim.cmd("startinsert")
 
-				if not success then
-					-- Если API недоступно, создаем окно вручную
-					vim.cmd("split")
-					vim.cmd("enew")
-					vim.api.nvim_buf_set_name(0, "CMake Console")
-					vim.bo.buftype = "nofile"
-					vim.bo.bufhidden = "hide"
-					vim.api.nvim_buf_set_lines(0, 0, -1, false, {
-						"CMake Console",
-						"══════════════════════════════════════════",
-						"Используйте :CMakeGenerate, :CMakeBuild и т.д.",
-						"══════════════════════════════════════════",
-					})
-					winid = vim.api.nvim_get_current_win()
-					bufnr = vim.api.nvim_get_current_buf()
-				end
+			-- Сохраняем ID окна и буфера
+			shared_terminal_winid = vim.api.nvim_get_current_win()
+			shared_terminal_bufnr = vim.api.nvim_get_current_buf()
+			M.run_terminal_winid = shared_terminal_winid
+			M.run_terminal_bufnr = shared_terminal_bufnr
 
-				-- Ждем немного и прокручиваем вниз
-				vim.defer_fn(function()
-					local new_winid, new_bufnr = find_cmake_console_window()
-					if new_winid then
-						vim.api.nvim_buf_call(new_bufnr, function()
-							vim.cmd("normal! G")
-						end)
-					end
-				end, 100)
+			-- Устанавливаем размер окна
+			vim.api.nvim_win_set_height(shared_terminal_winid, 15)
+
+			-- Добавляем заголовок окна
+			local winbar_text = "▶ " .. target
+			if args and args ~= "" then
+				winbar_text = winbar_text .. " " .. args
+			end
+			vim.api.nvim_set_option_value("winbar", winbar_text, { win = shared_terminal_winid })
+
+			-- Автоматическое удаление при закрытии окна
+			vim.api.nvim_create_autocmd("WinClosed", {
+				buffer = shared_terminal_bufnr,
+				once = true,
+				callback = function()
+					shared_terminal_winid = nil
+					shared_terminal_bufnr = nil
+					M.run_terminal_winid = nil
+					M.run_terminal_bufnr = nil
+				end,
+			})
+
+			-- Возвращаем фокус в предыдущее окно
+			if vim.api.nvim_win_is_valid(current_win) then
+				vim.api.nvim_set_current_win(current_win)
 			end
 
-			-- Возвращаемся в предыдущее окно и выполняем действие
-			vim.defer_fn(function()
-				vim.cmd("wincmd p") -- возврат в предыдущее окно
-
-				if action_func then
-					action_func()
-				end
-
-				if action_name then
-					vim.notify(action_name, vim.log.levels.INFO)
-				end
-			end, 150)
+			return shared_terminal_winid, shared_terminal_bufnr
 		end
 
-		-- Горячие клавиши с гарантированным открытием консоли
+		-- Горячие клавиши с общим логом
 		vim.keymap.set("n", "<leader>cg", function()
-			execute_with_console(function()
-				cmake.generate({})
-			end, "Генерация CMake...")
+			add_to_shared_log("Генерация CMake...", false)
+			local success, result = pcall(cmake.generate, {})
+			if success then
+				add_to_shared_log("Генерация CMake завершена", false)
+				vim.notify("Генерация CMake завершена", vim.log.levels.INFO)
+			else
+				add_to_shared_log("Ошибка генерации CMake: " .. tostring(result), true)
+				vim.notify("Ошибка генерации CMake", vim.log.levels.ERROR)
+			end
 		end, { desc = "CMake Generate" })
 
 		vim.keymap.set("n", "<leader>cb", function()
-			execute_with_console(function()
-				cmake.build({})
-			end, "Сборка проекта...")
+			add_to_shared_log("Сборка проекта...", false)
+			local success, result = pcall(cmake.build, {})
+			if success then
+				add_to_shared_log("Сборка проекта завершена", false)
+				vim.notify("Сборка проекта завершена", vim.log.levels.INFO)
+			else
+				add_to_shared_log("Ошибка сборки проекта: " .. tostring(result), true)
+				vim.notify("Ошибка сборки проекта", vim.log.levels.ERROR)
+			end
 		end, { desc = "CMake Build" })
 
-		-- Запуск без аргументов
+		-- Запуск без аргументов (использует общий терминал)
 		vim.keymap.set("n", "<leader>cr", function()
-			execute_with_console(function()
-				cmake.run({})
-			end, "Запуск проекта...")
-		end, { desc = "CMake Run" })
+			-- Получаем текущую цель
+			local target = nil
+			local status_ok, result = pcall(function()
+				return cmake.get_launch_target()
+			end)
 
-		-- Функция для поиска исполняемого файла
-		local function find_executable(target)
-			local possible_paths = {
-				"./build/" .. target,
-				"./build/Debug/" .. target,
-				"./build/Release/" .. target,
-				"./build/bin/" .. target,
-				"./build/Debug/bin/" .. target,
-				"./build/Release/bin/" .. target,
-			}
+			if status_ok and result then
+				target = result
+			end
 
-			for _, path in ipairs(possible_paths) do
-				if vim.fn.executable(path) == 1 then
-					return path
+			if not target or target == "" then
+				-- Если не можем получить цель, запросим у пользователя
+				target = vim.fn.input("Имя исполняемого файла (из build/): ", "")
+				if target == "" then
+					vim.notify("Цель не указана", vim.log.levels.WARN)
+					return
 				end
 			end
 
-			-- Если не нашли, используем find
-			local handle = io.popen("find build -name '" .. target .. "' -type f -executable 2>/dev/null | head -1")
-			if handle then
-				local found = handle:read("*a"):gsub("%s+$", "")
-				handle:close()
-				return found ~= "" and found or nil
+			-- Ищем исполняемый файл
+			local exe_path = find_executable(target)
+			if not exe_path then
+				vim.notify("Исполняемый файл не найден: " .. target, vim.log.levels.ERROR)
+				add_to_shared_log("ОШИБКА: Исполняемый файл не найден: " .. target, true)
+				return
 			end
 
-			return nil
-		end
+			-- Строим команду для запуска
+			local cmd = exe_path
 
-		-- Запуск с аргументами
+			add_to_shared_log("Запуск программы: " .. cmd, false)
+
+			-- Запускаем в общем терминале
+			run_in_shared_terminal(cmd, target, nil)
+
+			vim.notify("Запущено: " .. target, vim.log.levels.INFO)
+		end, { desc = "CMake Run" })
+
+		-- Запуск с аргументами (использует тот же общий терминал)
 		vim.keymap.set("n", "<leader>cR", function()
 			-- Получаем текущую цель
 			local target = nil
-
-			-- Попробуем получить цель из cmake-tools
 			local status_ok, result = pcall(function()
 				return cmake.get_launch_target()
 			end)
@@ -517,6 +438,7 @@ return {
 			local exe_path = find_executable(target)
 			if not exe_path then
 				vim.notify("Исполняемый файл не найден: " .. target, vim.log.levels.ERROR)
+				add_to_shared_log("ОШИБКА: Исполняемый файл не найден: " .. target, true)
 				return
 			end
 
@@ -526,54 +448,11 @@ return {
 				cmd = cmd .. " " .. args_input
 			end
 
-			vim.notify("Запускаю: " .. cmd, vim.log.levels.INFO)
+			add_to_shared_log("Запуск программы: " .. cmd, false)
 
-			-- Проверяем, есть ли уже окно терминала
-			local winid, bufnr = find_run_terminal_window()
+			-- Запускаем в общем терминале
+			run_in_shared_terminal(cmd, target, args_input)
 
-			if winid and bufnr then
-				-- Окно существует, очищаем и запускаем новую команду
-				clear_terminal_and_run(bufnr, winid, cmd)
-			else
-				-- Создаем новое окно терминала
-				vim.cmd("split") -- Вертикальное разделение
-				vim.cmd("terminal " .. cmd)
-				vim.cmd("startinsert")
-
-				-- Сохраняем ID окна и буфера
-				M.run_terminal_winid = vim.api.nvim_get_current_win()
-				M.run_terminal_bufnr = vim.api.nvim_get_current_buf()
-
-				-- Устанавливаем размер окна
-				vim.api.nvim_win_set_height(M.run_terminal_winid, 15)
-
-				-- Автоматическое удаление при закрытии окна
-				vim.api.nvim_create_autocmd("WinClosed", {
-					buffer = M.run_terminal_bufnr,
-					once = true,
-					callback = function()
-						M.run_terminal_winid = nil
-						M.run_terminal_bufnr = nil
-					end,
-				})
-			end
-
-			-- Автоматическое обновление при закрытии окна
-			vim.api.nvim_create_autocmd("WinClosed", {
-				buffer = terminal_bufnr,
-				once = true,
-				callback = function()
-					M.run_terminal_winid = nil
-					M.run_terminal_bufnr = nil
-				end,
-			})
-
-			-- Возвращаем фокус в предыдущее окно
-			if vim.api.nvim_win_is_valid(current_win) then
-				vim.api.nvim_set_current_win(current_win)
-			end
-
-			-- Показываем уведомление
 			vim.notify(
 				"Запущено: " .. target .. (args_input ~= "" and " с аргументами" or ""),
 				vim.log.levels.INFO
@@ -582,9 +461,12 @@ return {
 
 		-- Закрытие терминала
 		vim.keymap.set("n", "<leader>cz", function()
-			close_run_terminal()
+			close_shared_terminal()
 			vim.notify("Терминал запуска закрыт", vim.log.levels.INFO)
 		end, { desc = "Close run terminal" })
+
+		-- Выбор цели
+		vim.keymap.set("n", "<leader>ct", "<cmd>CMakeSelectTarget<cr>", { desc = "Select Target" })
 
 		-- Просмотр сохраненных аргументов
 		vim.keymap.set("n", "<leader>ca", function()
@@ -643,45 +525,84 @@ return {
 			end,
 		})
 
-		-- Другие команды без консоли
+		-- Другие команды
 		vim.keymap.set("n", "<leader>cd", "<cmd>CMakeDebug<cr>", { desc = "CMake Debug" })
 		vim.keymap.set("n", "<leader>cc", "<cmd>CMakeClean<cr>", { desc = "CMake Clean" })
-		vim.keymap.set("n", "<leader>ct", "<cmd>CMakeSelectTarget<cr>", { desc = "Select Target" })
 
+		-- Управление общим логом
 		vim.keymap.set("n", "<leader>co", function()
-			open_cmake_console()
-			vim.cmd("startinsert")
-		end, { desc = "Open CMake console" })
+			-- Создаем или получаем буфер лога
+			local bufnr = get_shared_log_buffer()
+
+			if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+				vim.notify("Не удалось создать буфер лога", vim.log.levels.ERROR)
+				return
+			end
+
+			-- Проверяем, есть ли уже окно с этим буфером
+			local existing_winid = nil
+			for _, winid in ipairs(vim.api.nvim_list_wins()) do
+				if vim.api.nvim_win_get_buf(winid) == bufnr then
+					existing_winid = winid
+					break
+				end
+			end
+
+			if existing_winid then
+				-- Если окно уже есть, переключаемся на него
+				vim.api.nvim_set_current_win(existing_winid)
+			else
+				-- Иначе создаем новое окно
+				local current_win = vim.api.nvim_get_current_win()
+				vim.cmd("botright split")
+				vim.api.nvim_win_set_buf(0, bufnr)
+				vim.api.nvim_win_set_height(0, 15)
+
+				-- Возвращаем фокус на предыдущее окно если нужно
+				if vim.api.nvim_win_is_valid(current_win) then
+					vim.api.nvim_set_current_win(current_win)
+				end
+			end
+		end, { desc = "Open shared log" })
 
 		vim.keymap.set("n", "<leader>cx", function()
-			-- Используем find_cmake_console_window для получения актуального winid
-			local winid, bufnr = find_cmake_console_window()
-			if winid and vim.api.nvim_win_is_valid(winid) then
-				vim.api.nvim_win_close(winid, true)
-				console_state.winid = nil
-				console_state.bufnr = nil
-				console_state.is_open = false
-			else
-				vim.notify("Консоль CMake не найдена", vim.log.levels.INFO)
-			end
-		end, { desc = "Close CMake console" })
+			-- Закрываем окно общего лога
+			local bufnr = get_shared_log_buffer()
 
-		-- Очистить консоль
+			for _, winid in ipairs(vim.api.nvim_list_wins()) do
+				if vim.api.nvim_win_get_buf(winid) == bufnr then
+					vim.api.nvim_win_close(winid, true)
+					break
+				end
+			end
+		end, { desc = "Close shared log" })
+
 		vim.keymap.set("n", "<leader>cl", function()
-			local bufnr = console_state.bufnr
-			if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+			local bufnr = get_shared_log_buffer()
+
+			if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+				return
+			end
+
+			-- Безопасно очищаем буфер
+			pcall(function()
+				vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
+				vim.api.nvim_set_option_value("readonly", false, { buf = bufnr })
+
 				vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
 					"╔══════════════════════════════════════════╗",
-					"║           CMake Console                  ║",
+					"║           CMake Shared Log               ║",
+					"║     Все операции в одном окне            ║",
 					"╚══════════════════════════════════════════╝",
 					"",
-					"Консоль очищена " .. os.date("%H:%M:%S"),
+					"Лог очищен " .. os.date("%H:%M:%S"),
+					"",
 				})
-				vim.api.nvim_buf_call(bufnr, function()
-					vim.cmd("normal! G")
-				end)
-			end
-		end, { desc = "Clear CMake console" })
+
+				vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
+				vim.api.nvim_set_option_value("readonly", true, { buf = bufnr })
+			end)
+		end, { desc = "Clear shared log" })
 
 		-- Автоматически обновлять compile_commands.json
 		vim.api.nvim_create_autocmd("User", {
@@ -696,53 +617,8 @@ return {
 					vim.notify("compile_commands.json обновлен", vim.log.levels.INFO)
 				end
 
-				-- Добавляем сообщение в консоль после сборки
-				vim.defer_fn(function()
-					local winid, bufnr = find_cmake_console_window()
-					if winid and bufnr then
-						-- Переходим в окно консоли
-						local current_win = vim.api.nvim_get_current_win()
-						vim.api.nvim_set_current_win(winid)
-						-- Прокручиваем вниз
-						vim.api.nvim_buf_call(bufnr, function()
-							vim.cmd("normal! G")
-						end)
-						-- Добавляем финальное сообщение
-						vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
-							"",
-							"══════════════════════════════════════════",
-							"✅ Сборка завершена успешно!",
-							"Окно останется открытым",
-							"══════════════════════════════════════════",
-							"",
-						})
-						-- Прокручиваем вниз снова
-						vim.api.nvim_buf_call(bufnr, function()
-							vim.cmd("normal! G")
-						end)
-						-- Возвращаемся в предыдущее окно
-						vim.api.nvim_set_current_win(current_win)
-					end
-				end, 1000) -- Ждем дольше для гарантии
-			end,
-		})
-
-		-- Дополнительно: Хук после открытия консоли
-		vim.api.nvim_create_autocmd("User", {
-			pattern = "CMakeConsoleOpened",
-			callback = function()
-				vim.defer_fn(function()
-					local winid, bufnr = find_cmake_console_window()
-					if winid and bufnr then
-						-- Устанавливаем, что буфер не должен закрываться
-						vim.bo[bufnr].bufhidden = ""
-						vim.bo[bufnr].buflisted = true
-						-- Прокручиваем вниз
-						vim.api.nvim_buf_call(bufnr, function()
-							vim.cmd("normal! G")
-						end)
-					end
-				end, 200)
+				-- Добавляем сообщение в общий лог
+				add_to_shared_log("Сборка завершена, compile_commands.json обновлен", false)
 			end,
 		})
 	end,
