@@ -2,13 +2,18 @@
 
 return {
 	"civitasv/cmake-tools.nvim",
-	dependencies = { "nvim-lua/plenary.nvim" },
+	dependencies = {
+		"nvim-lua/plenary.nvim",
+		"mfussenegger/nvim-dap",
+	},
 	ft = { "cmake", "cpp", "c" }, -- загружаем для CMake-файлов
 
 	config = function()
 		local cmake = require("cmake-tools")
 		local M = {}
 		M.runner_args = {} -- Хранилище для аргументов
+		M.run_terminal_bufnr = nil -- ID буфера терминала для запуска
+		M.run_terminal_winid = nil -- ID окна терминала для запуска
 
 		cmake.setup({
 			cmake_command = "cmake",
@@ -62,6 +67,119 @@ return {
 				end
 			end
 			return nil, nil
+		end
+
+		-- Функция для поиска существующего окна терминала для запуска
+		local function find_run_terminal_window()
+			-- Проверяем, есть ли сохраненный ID окна и он все еще валиден
+			if M.run_terminal_winid and vim.api.nvim_win_is_valid(M.run_terminal_winid) then
+				local bufnr = vim.api.nvim_win_get_buf(M.run_terminal_winid)
+				local buftype = vim.api.nvim_buf_get_option(bufnr, "buftype")
+				if buftype == "terminal" then
+					return M.run_terminal_winid, bufnr
+				end
+			end
+
+			-- Ищем среди всех окон
+			for _, winid in ipairs(vim.api.nvim_list_wins()) do
+				local bufnr = vim.api.nvim_win_get_buf(winid)
+				local buftype = vim.api.nvim_buf_get_option(bufnr, "buftype")
+				local bufname = vim.api.nvim_buf_get_name(bufnr)
+
+				-- Проверяем, что это терминал и имя буфера содержит сигнатуру запуска
+				if buftype == "terminal" and (bufname:match("term://") or vim.api.nvim_buf_get_name(bufnr) == "") then
+					M.run_terminal_winid = winid
+					M.run_terminal_bufnr = bufnr
+					return winid, bufnr
+				end
+			end
+
+			return nil, nil
+		end
+
+		-- Функция для корректной очистки терминала
+		local function clear_terminal_and_run(bufnr, winid, command)
+			-- Сохраняем текущее окно
+			local current_win = vim.api.nvim_get_current_win()
+
+			-- Закрываем старое окно терминала если оно есть
+			if winid and vim.api.nvim_win_is_valid(winid) then
+				vim.api.nvim_set_current_win(winid)
+				-- Выходим из режима вставки если находимся в нем
+				vim.cmd("stopinsert")
+				-- Закрываем окно
+				vim.api.nvim_win_close(winid, true)
+			end
+
+			-- Удаляем буфер если он существует
+			if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+				vim.api.nvim_buf_delete(bufnr, { force = true })
+			end
+
+			-- Создаем новое окно терминала
+			vim.cmd("split") -- Вертикальное разделение
+
+			-- Используем termopen для большей надежности
+			vim.cmd("enew") -- Создаем новый буфер
+			local new_bufnr = vim.api.nvim_get_current_buf()
+
+			-- Открываем терминал в этом буфере
+			vim.cmd("terminal " .. command)
+
+			-- Переходим в терминальный режим
+			vim.cmd("startinsert")
+
+			-- Получаем новые ID
+			local new_winid = vim.api.nvim_get_current_win()
+			local new_bufnr = vim.api.nvim_get_current_buf()
+
+			-- Сохраняем ID окна и буфера
+			M.run_terminal_winid = new_winid
+			M.run_terminal_bufnr = new_bufnr
+
+			-- Устанавливаем размер окна
+			vim.api.nvim_win_set_height(new_winid, 15)
+
+			-- Возвращаемся в предыдущее окно
+			if vim.api.nvim_win_is_valid(current_win) then
+				vim.api.nvim_set_current_win(current_win)
+			end
+
+			-- Автоматическое удаление при закрытии окна
+			vim.api.nvim_create_autocmd("WinClosed", {
+				buffer = new_bufnr,
+				once = true,
+				callback = function()
+					M.run_terminal_winid = nil
+					M.run_terminal_bufnr = nil
+				end,
+			})
+
+			return true
+		end
+
+		-- Функция для закрытия существующего терминала запуска
+		local function close_run_terminal()
+			local winid, bufnr = find_run_terminal_window()
+			if winid then
+				-- Останавливаем процесс в терминале
+				local job_id = bufnr and vim.api.nvim_buf_get_var(bufnr, "terminal_job_id")
+				if job_id then
+					pcall(vim.fn.chansend, job_id, "\003") -- Ctrl+C
+					vim.fn.wait(200, function() end)
+				end
+
+				-- Закрываем окно и буфер
+				if vim.api.nvim_win_is_valid(winid) then
+					vim.api.nvim_win_close(winid, true)
+				end
+				if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+					vim.api.nvim_buf_delete(bufnr, { force = true })
+				end
+
+				M.run_terminal_winid = nil
+				M.run_terminal_bufnr = nil
+			end
 		end
 
 		-- Функция для принудительного открытия/показа консоли ПЕРЕД действием
@@ -126,6 +244,34 @@ return {
 			end, "Запуск проекта...")
 		end, { desc = "CMake Run" })
 
+		-- Функция для поиска исполняемого файла
+		local function find_executable(target)
+			local possible_paths = {
+				"./build/" .. target,
+				"./build/Debug/" .. target,
+				"./build/Release/" .. target,
+				"./build/bin/" .. target,
+				"./build/Debug/bin/" .. target,
+				"./build/Release/bin/" .. target,
+			}
+
+			for _, path in ipairs(possible_paths) do
+				if vim.fn.executable(path) == 1 then
+					return path
+				end
+			end
+
+			-- Если не нашли, используем find
+			local handle = io.popen("find build -name '" .. target .. "' -type f -executable 2>/dev/null | head -1")
+			if handle then
+				local found = handle:read("*a"):gsub("%s+$", "")
+				handle:close()
+				return found ~= "" and found or nil
+			end
+
+			return nil
+		end
+
 		-- Запуск с аргументами
 		vim.keymap.set("n", "<leader>cR", function()
 			-- Получаем текущую цель
@@ -158,24 +304,11 @@ return {
 				M.runner_args[target] = args_input
 			end
 
-			-- Проверяем, существует ли файл
-			local exe_path = "./build/" .. target
-			if vim.fn.filereadable(exe_path) ~= 1 then
-				-- Пробуем найти файл в подпапках build
-				local handle = io.popen("find build -name '" .. target .. "' -type f -executable 2>/dev/null | head -1")
-				if handle then
-					local found = handle:read("*a"):gsub("%s+$", "")
-					handle:close()
-					if found ~= "" then
-						exe_path = found
-					else
-						vim.notify(
-							"Исполняемый файл не найден: " .. target,
-							vim.log.levels.ERROR
-						)
-						return
-					end
-				end
+			-- Ищем исполняемый файл
+			local exe_path = find_executable(target)
+			if not exe_path then
+				vim.notify("Исполняемый файл не найден: " .. target, vim.log.levels.ERROR)
+				return
 			end
 
 			-- Строим команду для запуска
@@ -186,13 +319,42 @@ return {
 
 			vim.notify("Запускаю: " .. cmd, vim.log.levels.INFO)
 
-			-- Запускаем в новом окне терминала
-			vim.cmd("split | terminal " .. cmd)
-			vim.cmd("startinsert")
+			-- Проверяем, есть ли уже окно терминала
+			local winid, bufnr = find_run_terminal_window()
+
+			if winid and bufnr then
+				-- Окно существует, очищаем и запускаем новую команду
+				clear_terminal_and_run(bufnr, winid, cmd)
+			else
+				-- Создаем новое окно терминала
+				vim.cmd("split") -- Вертикальное разделение
+				vim.cmd("terminal " .. cmd)
+				vim.cmd("startinsert")
+
+				-- Сохраняем ID окна и буфера
+				M.run_terminal_winid = vim.api.nvim_get_current_win()
+				M.run_terminal_bufnr = vim.api.nvim_get_current_buf()
+
+				-- Устанавливаем размер окна
+				vim.api.nvim_win_set_height(M.run_terminal_winid, 15)
+
+				-- Автоматическое удаление при закрытии окна
+				vim.api.nvim_create_autocmd("WinClosed", {
+					buffer = M.run_terminal_bufnr,
+					once = true,
+					callback = function()
+						M.run_terminal_winid = nil
+						M.run_terminal_bufnr = nil
+					end,
+				})
+			end
 		end, { desc = "CMake Run with args" })
 
-		-- Выбор цели
-		vim.keymap.set("n", "<leader>ct", "<cmd>CMakeSelectTarget<cr>", { desc = "Select Target" })
+		-- Закрытие терминала
+		vim.keymap.set("n", "<leader>cz", function()
+			close_run_terminal()
+			vim.notify("Терминал запуска закрыт", vim.log.levels.INFO)
+		end, { desc = "Close run terminal" })
 
 		-- Просмотр сохраненных аргументов
 		vim.keymap.set("n", "<leader>ca", function()

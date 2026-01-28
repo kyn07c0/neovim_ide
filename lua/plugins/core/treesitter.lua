@@ -8,6 +8,7 @@ return {
 	lazy = false,
 
 	config = function()
+		local install_dir = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/parser"
 		-- Устанавливаем нужные парсеры один раз (асинхронно)
 		-- Если уже установлены — пропустит
 		require("nvim-treesitter").install({
@@ -62,6 +63,8 @@ return {
 			-- ========================================
 			-- ОСНОВНЫЕ НАСТРОЙКИ
 			-- ========================================
+			-- Явное указание пути установки
+			install_dir = install_dir,
 
 			-- Автоматическая установка парсеров
 			auto_install = true,
