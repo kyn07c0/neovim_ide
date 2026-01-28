@@ -73,20 +73,28 @@ return {
 				and vim.api.nvim_win_is_valid(console_state.winid)
 				and vim.api.nvim_buf_is_valid(console_state.bufnr)
 			then
-				return console_state.winid, console_state.bufnr
+				-- Проверяем, что это действительно окно консоли
+				local bufname = vim.api.nvim_buf_get_name(console_state.bufnr)
+				if bufname:match("CMake Console") then
+					return console_state.winid, console_state.bufnr
+				end
 			end
 
 			-- Ищем среди всех окон
 			for _, winid in ipairs(vim.api.nvim_list_wins()) do
-				local bufnr = vim.api.nvim_win_get_buf(winid)
-				local bufname = vim.api.nvim_buf_get_name(bufnr)
-				local buftitle = vim.api.nvim_buf_get_option(bufnr, "buftype")
+				if vim.api.nvim_win_is_valid(winid) then
+					local bufnr = vim.api.nvim_win_get_buf(winid)
+					if vim.api.nvim_buf_is_valid(bufnr) then
+						local bufname = vim.api.nvim_buf_get_name(bufnr)
+						local buftype = vim.api.nvim_buf_get_option(bufnr, "buftype")
 
-				if bufname:match("CMake Console") or bufname:match("cmake_tools") or buftitle == "nofile" then
-					console_state.winid = winid
-					console_state.bufnr = bufnr
-					console_state.is_open = true
-					return winid, bufnr
+						if bufname:match("CMake Console") or (buftype == "nofile" and bufname == "") then
+							console_state.winid = winid
+							console_state.bufnr = bufnr
+							console_state.is_open = true
+							return winid, bufnr
+						end
+					end
 				end
 			end
 			return nil, nil
@@ -98,12 +106,16 @@ return {
 
 			if winid then
 				-- Окно уже существует, переключаемся на него
-				vim.api.nvim_set_current_win(winid)
-				vim.cmd("wincmd =")
-				-- Прокручиваем вниз
-				vim.api.nvim_buf_call(bufnr, function()
-					vim.cmd("normal! G")
-				end)
+				if vim.api.nvim_win_is_valid(winid) then
+					vim.api.nvim_set_current_win(winid)
+					vim.cmd("wincmd =")
+					-- Прокручиваем вниз
+					if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+						vim.api.nvim_buf_call(bufnr, function()
+							vim.cmd("normal! G")
+						end)
+					end
+				end
 				return winid, bufnr
 			else
 				-- Создаем новое окно консоли
@@ -156,7 +168,7 @@ return {
 		local function add_to_cmake_console(message, is_error)
 			local winid, bufnr = open_cmake_console()
 
-			if bufnr then
+			if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
 				-- Включаем возможность редактирования
 				vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
 				vim.api.nvim_buf_set_option(bufnr, "readonly", false)
@@ -193,6 +205,7 @@ return {
 
 				-- Возвращаем режим только для чтения для безопасности
 				vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+				vim.api.nvim_buf_set_option(bufnr, "readonly", true)
 			end
 		end
 
@@ -259,46 +272,52 @@ return {
 
 		-- Функция для корректной очистки терминала
 		local function clear_terminal_and_run(bufnr, winid, command)
+			-- Проверяем валидность входных данных
+			if
+				not winid
+				or not bufnr
+				or not vim.api.nvim_win_is_valid(winid)
+				or not vim.api.nvim_buf_is_valid(bufnr)
+			then
+				-- Просто создаем новый терминал
+				vim.cmd("split")
+				vim.cmd("terminal " .. command)
+				vim.cmd("startinsert")
+
+				M.run_terminal_winid = vim.api.nvim_get_current_win()
+				M.run_terminal_bufnr = vim.api.nvim_get_current_buf()
+				vim.api.nvim_win_set_height(M.run_terminal_winid, 15)
+				return true
+			end
+
 			-- Сохраняем текущее окно
 			local current_win = vim.api.nvim_get_current_win()
 
-			-- Закрываем старое окно терминала если оно есть
-			if winid and vim.api.nvim_win_is_valid(winid) then
-				vim.api.nvim_set_current_win(winid)
-				-- Выходим из режима вставки если находимся в нем
-				vim.cmd("stopinsert")
-				-- Закрываем окно
-				vim.api.nvim_win_close(winid, true)
-			end
+			-- Переходим в окно терминала
+			vim.api.nvim_set_current_win(winid)
 
-			-- Удаляем буфер если он существует
-			if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+			-- Выходим из режима вставки если находимся в нем
+			vim.cmd("stopinsert")
+
+			-- Закрываем старое окно
+			vim.api.nvim_win_close(winid, true)
+
+			-- Удаляем старый буфер
+			if vim.api.nvim_buf_is_valid(bufnr) then
 				vim.api.nvim_buf_delete(bufnr, { force = true })
 			end
 
-			-- Создаем новое окно терминала
-			vim.cmd("split") -- Вертикальное разделение
-
-			-- Используем termopen для большей надежности
-			vim.cmd("enew") -- Создаем новый буфер
-			local new_bufnr = vim.api.nvim_get_current_buf()
-
-			-- Открываем терминал в этом буфере
+			-- Создаем новый терминал
+			vim.cmd("split")
 			vim.cmd("terminal " .. command)
-
-			-- Переходим в терминальный режим
 			vim.cmd("startinsert")
 
-			-- Получаем новые ID
-			local new_winid = vim.api.nvim_get_current_win()
-			local new_bufnr = vim.api.nvim_get_current_buf()
-
-			-- Сохраняем ID окна и буфера
-			M.run_terminal_winid = new_winid
-			M.run_terminal_bufnr = new_bufnr
+			-- Сохраняем новые ID
+			M.run_terminal_winid = vim.api.nvim_get_current_win()
+			M.run_terminal_bufnr = vim.api.nvim_get_current_buf()
 
 			-- Устанавливаем размер окна
-			vim.api.nvim_win_set_height(new_winid, 15)
+			vim.api.nvim_win_set_height(M.run_terminal_winid, 15)
 
 			-- Возвращаемся в предыдущее окно
 			if vim.api.nvim_win_is_valid(current_win) then
@@ -307,7 +326,7 @@ return {
 
 			-- Автоматическое удаление при закрытии окна
 			vim.api.nvim_create_autocmd("WinClosed", {
-				buffer = new_bufnr,
+				buffer = M.run_terminal_bufnr,
 				once = true,
 				callback = function()
 					M.run_terminal_winid = nil
@@ -635,12 +654,15 @@ return {
 		end, { desc = "Open CMake console" })
 
 		vim.keymap.set("n", "<leader>cx", function()
-			local winid = console_state.winid
+			-- Используем find_cmake_console_window для получения актуального winid
+			local winid, bufnr = find_cmake_console_window()
 			if winid and vim.api.nvim_win_is_valid(winid) then
 				vim.api.nvim_win_close(winid, true)
 				console_state.winid = nil
 				console_state.bufnr = nil
 				console_state.is_open = false
+			else
+				vim.notify("Консоль CMake не найдена", vim.log.levels.INFO)
 			end
 		end, { desc = "Close CMake console" })
 
