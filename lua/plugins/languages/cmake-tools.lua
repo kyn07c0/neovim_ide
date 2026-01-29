@@ -45,6 +45,7 @@ return {
 			cmake_build_options = { "--verbose" }, -- подробный вывод
 			cmake_console_height = 20, -- явная высота
 			cmake_console_title = "CMake Console", -- заголовок окна
+			cmake_console_autoscroll = true, -- автоматическая прокрутка
 
 			-- Интеграция с dap
 			cmake_dap_configuration = {
