@@ -622,5 +622,30 @@ return {
 				add_to_shared_log("Сборка завершена, compile_commands.json обновлен", false)
 			end,
 		})
+
+		-- Автопрокрутка для консоли CMake
+		vim.api.nvim_create_autocmd("User", {
+			pattern = "CMakeConsoleOpened",
+			callback = function()
+				vim.defer_fn(function()
+					-- Ищем окно консоли CMake
+					for _, winid in ipairs(vim.api.nvim_list_wins()) do
+						local bufnr = vim.api.nvim_win_get_buf(winid)
+						local bufname = vim.api.nvim_buf_get_name(bufnr)
+
+						if
+							bufname:match("cmake_tools")
+							or vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == "cmake"
+						then
+							-- Прокручиваем вниз
+							vim.api.nvim_win_call(winid, function()
+								vim.cmd("normal! G")
+							end)
+							break
+						end
+					end
+				end, 100)
+			end,
+		})
 	end,
 }
