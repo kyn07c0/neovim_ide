@@ -268,26 +268,31 @@ return {
 		local function close_shared_terminal()
 			local winid, bufnr = find_shared_terminal_window()
 			if winid then
-				-- Останавливаем процесс в терминале
-				local job_id = bufnr and vim.api.nvim_buf_get_var(bufnr, "terminal_job_id")
-				if job_id then
-					pcall(vim.fn.chansend, job_id, "\003") -- Ctrl+C
-					vim.fn.wait(200, function() end)
-				end
+				-- Используем vim.schedule для асинхронного закрытия
+				vim.schedule(function()
+					if vim.api.nvim_win_is_valid(winid) then
+						-- Останавливаем процесс в терминале
+						local job_id = bufnr and vim.api.nvim_buf_get_var(bufnr, "terminal_job_id")
+						if job_id then
+							pcall(vim.fn.chansend, job_id, "\003") -- Ctrl+C
+							vim.fn.wait(100, function() end)
+						end
 
-				-- Закрываем окно и буфер
-				if vim.api.nvim_win_is_valid(winid) then
-					vim.api.nvim_win_close(winid, true)
-				end
-				if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
-					vim.api.nvim_buf_delete(bufnr, { force = true })
-				end
+						-- Закрываем окно
+						vim.api.nvim_win_close(winid, true)
+					end
 
-				-- Очищаем все переменные
-				shared_terminal_winid = nil
-				shared_terminal_bufnr = nil
-				M.run_terminal_winid = nil
-				M.run_terminal_bufnr = nil
+					-- Закрываем буфер
+					if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+						vim.api.nvim_buf_delete(bufnr, { force = true })
+					end
+
+					-- Очищаем все переменные
+					shared_terminal_winid = nil
+					shared_terminal_bufnr = nil
+					M.run_terminal_winid = nil
+					M.run_terminal_bufnr = nil
+				end)
 			end
 		end
 
@@ -296,46 +301,108 @@ return {
 			-- Закрываем старый терминал если он есть
 			close_shared_terminal()
 
-			-- Сохраняем текущее окно
+			-- Ждем завершения закрытия окон
+			vim.fn.wait(300, function() end)
+
+			-- Проверяем, что нет операций закрытия окон
+			local safe_to_proceed = true
+			for i = 1, 10 do -- Проверяем несколько раз
+				local windows = vim.api.nvim_list_wins()
+				for _, winid in ipairs(windows) do
+					if not vim.api.nvim_win_is_valid(winid) then
+						safe_to_proceed = false
+						break
+					end
+				end
+				if not safe_to_proceed then
+					vim.fn.wait(50, function() end)
+				else
+					break
+				end
+			end
+
+			if not safe_to_proceed then
+				vim.notify(
+					"Не удалось создать терминал: система окон занята",
+					vim.log.levels.ERROR
+				)
+				return
+			end
+
+			-- Сохраняем текущее окно перед любыми операциями
 			local current_win = vim.api.nvim_get_current_win()
-
-			-- Создаем новое окно терминала
-			vim.cmd("split")
-			vim.cmd("terminal " .. cmd)
-			vim.cmd("startinsert")
-
-			-- Сохраняем ID окна и буфера
-			shared_terminal_winid = vim.api.nvim_get_current_win()
-			shared_terminal_bufnr = vim.api.nvim_get_current_buf()
-			M.run_terminal_winid = shared_terminal_winid
-			M.run_terminal_bufnr = shared_terminal_bufnr
-
-			-- Устанавливаем размер окна
-			vim.api.nvim_win_set_height(shared_terminal_winid, 15)
-
-			-- Добавляем заголовок окна
-			local winbar_text = "▶ " .. target
-			if args and args ~= "" then
-				winbar_text = winbar_text .. " " .. args
+			-- Проверяем, что окно все еще валидно
+			if not vim.api.nvim_win_is_valid(current_win) then
+				current_win = nil
+				for _, winid in ipairs(vim.api.nvim_list_wins()) do
+					if vim.api.nvim_win_is_valid(winid) then
+						current_win = winid
+						break
+					end
+				end
 			end
-			vim.api.nvim_set_option_value("winbar", winbar_text, { win = shared_terminal_winid })
 
-			-- Автоматическое удаление при закрытии окна
-			vim.api.nvim_create_autocmd("WinClosed", {
-				buffer = shared_terminal_bufnr,
-				once = true,
-				callback = function()
-					shared_terminal_winid = nil
-					shared_terminal_bufnr = nil
-					M.run_terminal_winid = nil
-					M.run_terminal_bufnr = nil
-				end,
-			})
-
-			-- Возвращаем фокус в предыдущее окно
-			if vim.api.nvim_win_is_valid(current_win) then
-				vim.api.nvim_set_current_win(current_win)
+			if not current_win then
+				vim.notify("Нет доступных окон", vim.log.levels.ERROR)
+				return
 			end
+
+			-- Устанавливаем текущее окно
+			vim.api.nvim_set_current_win(current_win)
+
+			-- Ждем еще немного
+			vim.fn.wait(100, function() end)
+
+			-- Используем асинхронное создание терминала через vim.schedule
+			vim.schedule(function()
+				-- Еще одна проверка
+				if not vim.api.nvim_win_is_valid(current_win) then
+					vim.notify(
+						"Окно стало невалидным во время создания терминала",
+						vim.log.levels.ERROR
+					)
+					return
+				end
+
+				-- Создаем новое окно терминала
+				vim.cmd("split")
+				vim.fn.wait(50, function() end)
+				vim.cmd("terminal " .. cmd)
+				vim.cmd("startinsert")
+
+				-- Сохраняем ID окна и буфера
+				shared_terminal_winid = vim.api.nvim_get_current_win()
+				shared_terminal_bufnr = vim.api.nvim_get_current_buf()
+				M.run_terminal_winid = shared_terminal_winid
+				M.run_terminal_bufnr = shared_terminal_bufnr
+
+				-- Устанавливаем размер окна
+				vim.api.nvim_win_set_height(shared_terminal_winid, 20)
+
+				-- Добавляем заголовок окна
+				local winbar_text = "▶ " .. target
+				if args and args ~= "" then
+					winbar_text = winbar_text .. " " .. args
+				end
+				vim.api.nvim_set_option_value("winbar", winbar_text, { win = shared_terminal_winid })
+
+				-- Автоматическое удаление при закрытии окна
+				vim.api.nvim_create_autocmd("WinClosed", {
+					buffer = shared_terminal_bufnr,
+					once = true,
+					callback = function()
+						shared_terminal_winid = nil
+						shared_terminal_bufnr = nil
+						M.run_terminal_winid = nil
+						M.run_terminal_bufnr = nil
+					end,
+				})
+
+				-- Возвращаем фокус в предыдущее окно
+				if vim.api.nvim_win_is_valid(current_win) then
+					vim.api.nvim_set_current_win(current_win)
+				end
+			end)
 
 			return shared_terminal_winid, shared_terminal_bufnr
 		end
@@ -620,31 +687,6 @@ return {
 
 				-- Добавляем сообщение в общий лог
 				add_to_shared_log("Сборка завершена, compile_commands.json обновлен", false)
-			end,
-		})
-
-		-- Автопрокрутка для консоли CMake
-		vim.api.nvim_create_autocmd("User", {
-			pattern = "CMakeConsoleOpened",
-			callback = function()
-				vim.defer_fn(function()
-					-- Ищем окно консоли CMake
-					for _, winid in ipairs(vim.api.nvim_list_wins()) do
-						local bufnr = vim.api.nvim_win_get_buf(winid)
-						local bufname = vim.api.nvim_buf_get_name(bufnr)
-
-						if
-							bufname:match("cmake_tools")
-							or vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == "cmake"
-						then
-							-- Прокручиваем вниз
-							vim.api.nvim_win_call(winid, function()
-								vim.cmd("normal! G")
-							end)
-							break
-						end
-					end
-				end, 100)
 			end,
 		})
 	end,

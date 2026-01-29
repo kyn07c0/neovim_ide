@@ -16,35 +16,6 @@ return {
 	},
 
 	config = function()
-		-- Получаем диагностику из LSP
-		local get_diagnostics = function(bufnr)
-			if not bufnr then
-				return {}
-			end
-
-			local diagnostics = vim.diagnostic.get(bufnr)
-			local result = {
-				errors = 0,
-				warnings = 0,
-				info = 0,
-				hints = 0,
-			}
-
-			for _, diag in ipairs(diagnostics) do
-				if diag.severity == vim.diagnostic.severity.ERROR then
-					result.errors = result.errors + 1
-				elseif diag.severity == vim.diagnostic.severity.WARN then
-					result.warnings = result.warnings + 1
-				elseif diag.severity == vim.diagnostic.severity.INFO then
-					result.info = result.info + 1
-				elseif diag.severity == vim.diagnostic.severity.HINT then
-					result.hints = result.hints + 1
-				end
-			end
-
-			return result
-		end
-
 		require("neo-tree").setup({
 			close_if_last_window = false,
 			popup_border_style = "rounded",
@@ -89,6 +60,7 @@ return {
 				follow_current_file = {
 					enabled = true,
 					leave_dirs_open = true,
+					delay = 500,
 				},
 
 				-- Использовать фиксированный корень
@@ -102,6 +74,8 @@ return {
 
 				-- Не обновлять при изменении директории
 				hijack_netrw_behavior = "open_default",
+
+				use_libuv_file_watcher = true,
 
 				window = {
 					position = "left",
@@ -158,6 +132,7 @@ return {
 				follow_current_file = {
 					enabled = true,
 					leave_dirs_open = true,
+					delay = 500,
 				},
 			},
 
@@ -232,18 +207,49 @@ return {
 				auto_expand_width = false,
 				resize_timer_interval = 0,
 				preserve_window_proportions = false,
+				mappings = {
+					["<space>"] = "none", -- Отключаем пробел, если он конфликтует
+				},
 			},
 
 			event_handlers = {
 				{
 					event = "neo_tree_buffer_enter",
 					handler = function()
-						-- Получаем текущее окно neo-tree
-						local winid = vim.api.nvim_get_current_win()
-						-- Устанавливаем ширину в 30 колонок
-						vim.api.nvim_win_set_width(winid, 30)
-						-- При входе в neo-tree — фиксируем его слева
-						vim.cmd("wincmd H")
+						-- Защита от рекурсивных вызовов
+						if vim.v.event.abort then
+							return
+						end
+
+						-- Откладываем выполнение до следующего тика event loop,
+						-- чтобы избежать конфликтов с закрывающимися окнами
+						vim.schedule(function()
+							-- Получаем текущее окно neo-tree
+							local winid = vim.api.nvim_get_current_win()
+
+							-- Проверяем, что окно всё ещё валидно
+							if not vim.api.nvim_win_is_valid(winid) then
+								return
+							end
+
+							-- Проверяем, что мы действительно в буфере neo-tree
+							local bufnr = vim.api.nvim_win_get_buf(winid)
+							local bufname = vim.api.nvim_buf_get_name(bufnr)
+							if not bufname:match("neo%-tree") then
+								return
+							end
+
+							-- Безопасно устанавливаем ширину
+							pcall(vim.api.nvim_win_set_width, winid, 30)
+
+							-- Безопасно перемещаем окно влево (используем pcall для перехвата ошибок)
+							local ok, _ = pcall(vim.cmd, "wincmd H")
+							if not ok then
+								-- Если не удалось переместить (например, окно закрывается),
+								-- просто игнорируем ошибку
+								return
+							end
+						end)
 					end,
 				},
 				-- Обновление при изменении диагностики
@@ -263,6 +269,26 @@ return {
 						vim.defer_fn(function()
 							require("neo-tree.sources.manager").refresh("filesystem")
 						end, 100)
+					end,
+				},
+				{
+					event = "before_render",
+					handler = function()
+						-- Проверяем, не закрывается ли другое окно
+						local windows = vim.api.nvim_list_wins()
+						local closing_windows = 0
+						for _, win in ipairs(windows) do
+							local config = vim.api.nvim_win_get_config(win)
+							if config and config.close then
+								closing_windows = closing_windows + 1
+							end
+						end
+						if closing_windows > 0 then
+							vim.defer_fn(function()
+								vim.cmd("NeoTreeShow")
+							end, 100)
+							return { skip = true }
+						end
 					end,
 				},
 			},
