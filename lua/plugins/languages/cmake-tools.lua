@@ -624,7 +624,7 @@ return {
 				local current_win = vim.api.nvim_get_current_win()
 				vim.cmd("botright split")
 				vim.api.nvim_win_set_buf(0, bufnr)
-				vim.api.nvim_win_set_height(0, 15)
+				vim.api.nvim_win_set_height(0, 20)
 
 				-- Возвращаем фокус на предыдущее окно если нужно
 				if vim.api.nvim_win_is_valid(current_win) then
@@ -674,19 +674,21 @@ return {
 
 		-- Автоматически обновлять compile_commands.json
 		vim.api.nvim_create_autocmd("User", {
-			pattern = "CMakeBuildFinished",
+			pattern = { "CMakeBuildFinished", "CMakeBuildFailed", "CMakeCleanFinished" },
 			callback = function()
-				local root = vim.fn.getcwd()
-				local source = root .. "/build/compile_commands.json"
-				local target = root .. "/compile_commands.json"
+				vim.defer_fn(function()
+					local root = vim.fn.getcwd()
+					local source = root .. "/build/compile_commands.json"
+					local target = root .. "/compile_commands.json"
 
-				if vim.fn.filereadable(source) == 1 then
-					os.execute("cp " .. source .. " " .. target)
-					vim.notify("compile_commands.json обновлен", vim.log.levels.INFO)
-				end
+					if vim.fn.filereadable(source) == 1 then
+						os.execute("cp " .. source .. " " .. target)
+						vim.notify("compile_commands.json обновлен", vim.log.levels.INFO)
+					end
 
-				-- Добавляем сообщение в общий лог
-				add_to_shared_log("Сборка завершена, compile_commands.json обновлен", false)
+					-- Добавляем сообщение в общий лог
+					add_to_shared_log("Сборка завершена, compile_commands.json обновлен", false)
+				end, 300)
 			end,
 		})
 	end,
