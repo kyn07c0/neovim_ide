@@ -2,7 +2,7 @@
 
 return {
 	"nvim-telescope/telescope.nvim",
-	branch = "0.1.x", -- стабильная ветка
+	branch = "main",
 	dependencies = {
 		"nvim-lua/plenary.nvim",
 		{
@@ -15,6 +15,11 @@ return {
 	},
 
 	config = function()
+		-- Отключить treesitter preview до полной загрузки Telescope
+		vim.defer_fn(function()
+			vim.treesitter = vim.treesitter or {}
+		end, 100)
+
 		local telescope = require("telescope")
 		local builtin = require("telescope.builtin")
 		local actions = require("telescope.actions")
@@ -40,7 +45,15 @@ return {
 					preview_cutoff = 120,
 				},
 
-				-- НЕ указываем file_sorter / generic_sorter вручную — fzf переопределит их сам
+				preview = {
+					treesitter = false, -- Временно отключаем
+					hide_on_startup = false,
+				},
+
+				-- Добавляем игнорирование ошибок в preview
+				file_previewer = require("telescope.previewers").vim_buffer_cat.new,
+				grep_previewer = require("telescope.previewers").vim_buffer_vimgrep.new,
+				qflist_previewer = require("telescope.previewers").vim_buffer_qflist.new,
 			},
 
 			pickers = {
@@ -49,6 +62,14 @@ return {
 				},
 				find_files = {
 					find_command = { "rg", "--files", "--hidden", "--glob=!.git/" },
+				},
+
+				-- Отключаем treesitter для всех pickers
+				buffers = {
+					previewer = false,
+				},
+				help_tags = {
+					previewer = false,
 				},
 			},
 
@@ -64,6 +85,14 @@ return {
 				},
 			},
 		})
+
+		-- Активируем расширения
+		pcall(function()
+			telescope.load_extension("fzf")
+			telescope.load_extension("ui-select")
+			telescope.load_extension("undo")
+			telescope.load_extension("projects")
+		end)
 
 		-- Горячие клавиши (leader = space)
 		local map = vim.keymap.set
@@ -82,5 +111,24 @@ return {
 
 		-- Git
 		map("n", "<leader>glc", builtin.git_commits, { desc = "Git commits" })
+
+		-- Безопасная версия команд
+		local safe_builtin = setmetatable({}, {
+			__index = function(_, key)
+				return function(opts)
+					opts = opts or {}
+					opts.preview = opts.preview or false
+					return builtin[key](opts)
+				end
+			end,
+		})
+
+		-- Альтернативные безопасные горячие клавиши
+		map("n", "<leader>fF", function()
+			safe_builtin.find_files({ preview = false })
+		end, { desc = "Find files (no preview)" })
+		map("n", "<leader>fG", function()
+			safe_builtin.live_grep({ preview = false })
+		end, { desc = "Live grep (no preview)" })
 	end,
 }
