@@ -256,21 +256,23 @@ return {
 				{
 					event = "diagnostic_changed",
 					handler = function()
-						-- Обновляем neo-tree при изменении диагностики
 						vim.defer_fn(function()
-							require("neo-tree.sources.manager").refresh("filesystem")
+							-- Обновляем только иконки диагностики, не дерево
+							pcall(function()
+								require("neo-tree.sources.filesystem.components").diagnostics.refresh()
+							end)
 						end, 50)
 					end,
 				},
 				-- Обновление при сохранении файла
-				{
-					event = "vim_buffer_enter",
-					handler = function()
-						vim.defer_fn(function()
-							require("neo-tree.sources.manager").refresh("filesystem")
-						end, 100)
-					end,
-				},
+				--{
+				--	event = "vim_buffer_enter",
+				--	handler = function()
+				--		vim.defer_fn(function()
+				--			require("neo-tree.sources.manager").refresh("filesystem")
+				--		end, 100)
+				--	end,
+				--},
 				{
 					event = "before_render",
 					handler = function()
@@ -292,43 +294,6 @@ return {
 					end,
 				},
 			},
-		})
-
-		-- Автоматическое обновление neo-tree при обновлении LSP диагностики
-		vim.api.nvim_create_autocmd("DiagnosticChanged", {
-			callback = function()
-				-- Ждем немного, чтобы диагностика успела обновиться
-				vim.defer_fn(function()
-					-- Обновляем все открытые neo-tree
-					for _, source in ipairs({ "filesystem", "buffers" }) do
-						pcall(function()
-							require("neo-tree.sources.manager").refresh(source)
-						end)
-					end
-				end, 100)
-			end,
-		})
-
-		-- Обновление при сохранении файла
-		vim.api.nvim_create_autocmd("BufWritePost", {
-			callback = function()
-				vim.defer_fn(function()
-					pcall(function()
-						require("neo-tree.sources.manager").refresh("filesystem")
-					end)
-				end, 200) -- Даем время clangd на анализ
-			end,
-		})
-
-		-- Обновление при выходе из режима вставки (где часто исправляются ошибки)
-		vim.api.nvim_create_autocmd("InsertLeave", {
-			callback = function()
-				vim.defer_fn(function()
-					pcall(function()
-						require("neo-tree.sources.manager").refresh("filesystem")
-					end)
-				end, 300)
-			end,
 		})
 	end,
 }
