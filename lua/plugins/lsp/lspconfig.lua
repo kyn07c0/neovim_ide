@@ -66,9 +66,9 @@ return {
 
 			-- Оптимизация производительности
 			handlers = {
-				["textDocument/semanticTokens/full"] = function(_, _, params, client_id, _, config)
+				["textDocument/semanticTokens/full"] = function(err, result, ctx, config)
 					-- Отключаем семантические токены для больших файлов
-					local uri = params.textDocument.uri
+					local uri = ctx.params.textDocument.uri
 					local bufnr = vim.uri_to_bufnr(uri)
 					local line_count = vim.api.nvim_buf_line_count(bufnr)
 
@@ -77,7 +77,7 @@ return {
 						return {}
 					end
 					-- Используем стандартный обработчик для маленьких файлов
-					return vim.lsp.handlers["textDocument/semanticTokens/full"](_, _, params, client_id, _, config)
+					return vim.lsp.handlers["textDocument/semanticTokens/full"](err, result, ctx, config)
 				end,
 			},
 

@@ -333,7 +333,7 @@ return {
 			local current_win = vim.api.nvim_get_current_win()
 			-- Проверяем, что окно все еще валидно
 			if not vim.api.nvim_win_is_valid(current_win) then
-				current_win = nil
+				current_win = -1
 				for _, winid in ipairs(vim.api.nvim_list_wins()) do
 					if vim.api.nvim_win_is_valid(winid) then
 						current_win = winid
@@ -342,7 +342,7 @@ return {
 				end
 			end
 
-			if not current_win then
+			if current_win == -1 then
 				vim.notify("Нет доступных окон", vim.log.levels.ERROR)
 				return
 			end
