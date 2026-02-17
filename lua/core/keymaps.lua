@@ -56,11 +56,11 @@ map(
 )
 
 -- Управление вкладками
-map("n", "<leader>tn", "<cmd>tabnew<cr>", { desc = "Новая вкладка" })
-map("n", "<leader>tc", "<cmd>tabclose<cr>", { desc = "Закрыть вкладку" })
-map("n", "<leader>to", "<cmd>tabonly<cr>", { desc = "Оставить только текущую вкладку" })
-map("n", "<leader>th", "<cmd>tabprevious<cr>", { desc = "Предыдущая вкладка" })
-map("n", "<leader>tl", "<cmd>tabnext<cr>", { desc = "Следующая вкладка" })
+map("n", "<leader>Tn", "<cmd>tabnew<cr>", { desc = "Новая вкладка" })
+map("n", "<leader>Tc", "<cmd>tabclose<cr>", { desc = "Закрыть вкладку" })
+map("n", "<leader>To", "<cmd>tabonly<cr>", { desc = "Оставить только текущую вкладку" })
+map("n", "<leader>Th", "<cmd>tabprevious<cr>", { desc = "Предыдущая вкладка" })
+map("n", "<leader>Tl", "<cmd>tabnext<cr>", { desc = "Следующая вкладка" })
 
 ---------- РЕДАКТИРОВАНИЕ ----------
 
@@ -199,7 +199,7 @@ map("n", "<leader>l", function()
 end, { desc = "Показать/скрыть непечатаемые символы" })
 
 -- Показать диагностику
-map("n", "<leader>dd", vim.diagnostic.open_float, { desc = "Показать диагностику" })
+map("n", "<leader>ld", vim.diagnostic.open_float, { desc = "Показать диагностику" })
 map("n", "[d", vim.diagnostic.get_prev, { desc = "Предыдущая диагностика" })
 map("n", "]d", vim.diagnostic.get_next, { desc = "Следующая диагностика" })
 

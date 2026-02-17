@@ -31,7 +31,10 @@ return {
 				"--pch-storage=memory", -- Оптимизация для больших проектов
 				"--malloc-trim", -- Освобождение памяти
 				"--pretty", -- Красивый вывод
-				"--limit-results=0", -- Без ограничений результатов
+				-- Оптимизация для больших проектов
+				"--limit-results=50", -- Без ограничений результатов
+				"--limit-references=100", -- ← ограничиваем референсы
+				"--rename-file-limit=50", -- ← ограничиваем переименования
 			},
 
 			-- fallback-флаги, если нет compile_commands.json
@@ -43,7 +46,7 @@ return {
 					"-I/usr/include/libnl3",
 				},
 				clangdFileStatus = true,
-				usePlaceholders = true,
+				usePlaceholders = false,
 				completeUnimported = true, -- Дополнение из неимпортированных файлов
 				backgroundIndex = true, -- Включить фоновое индексирование
 			},
@@ -126,7 +129,7 @@ return {
 				vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
 				vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
 				vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
-				vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
+				vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, opts)
 
 				-- Отключаем форматирование от LSP для C/C++ (используем conform.nvim)
 				if vim.bo.filetype == "cpp" or vim.bo.filetype == "c" then

@@ -7,7 +7,7 @@ return {
 		"nvim-lua/plenary.nvim",
 		{
 			"nvim-telescope/telescope-fzf-native.nvim",
-			build = "make", -- или "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build" если make не работает
+			build = "make", -- Блокирует если make не установлен
 		},
 		"nvim-telescope/telescope-ui-select.nvim",
 		"debugloop/telescope-undo.nvim", -- Для undo history
@@ -18,7 +18,7 @@ return {
 		-- Отключить treesitter preview до полной загрузки Telescope
 		vim.defer_fn(function()
 			vim.treesitter = vim.treesitter or {}
-		end, 100)
+		end, 1000)
 
 		local telescope = require("telescope")
 		local builtin = require("telescope.builtin")
@@ -27,6 +27,23 @@ return {
 
 		telescope.setup({
 			defaults = {
+
+				preview = {
+					treesitter = true,
+					timeout = 500, -- Таймаут для больших файлов
+					filesize_limit = 1, -- МБ, файлы больше — без preview
+					highlight_limit = 10000, -- Строк, больше — без подсветки
+				},
+
+				-- Кэширование результатов
+				cache_picker = {
+					num_pickers = 5,
+					limit_entries = 1000,
+				},
+
+				-- Уменьшаем задержки
+				debounce = 100,
+
 				mappings = {
 					i = {
 						["<C-j>"] = actions.move_selection_next,
@@ -45,11 +62,6 @@ return {
 					preview_cutoff = 120,
 				},
 
-				preview = {
-					treesitter = false, -- Временно отключаем
-					hide_on_startup = false,
-				},
-
 				-- Добавляем игнорирование ошибок в preview
 				file_previewer = require("telescope.previewers").vim_buffer_cat.new,
 				grep_previewer = require("telescope.previewers").vim_buffer_vimgrep.new,
@@ -57,6 +69,10 @@ return {
 			},
 
 			pickers = {
+
+				-- Отключаем preview для частых операций
+				keymaps = { previewer = false },
+
 				live_grep = {
 					additional_args = { "--hidden", "--glob=!.git/" },
 				},
@@ -104,13 +120,15 @@ return {
 		map("n", "<leader>fp", "<cmd>Telescope projects<cr>", { desc = "Projects" })
 
 		-- LSP (очень полезно в C++)
-		map("n", "<leader>fs", builtin.lsp_dynamic_workspace_symbols, { desc = "Workspace symbols" })
-		map("n", "<leader>fd", builtin.lsp_document_symbols, { desc = "Document symbols" })
-		map("n", "<leader>flr", builtin.lsp_references, { desc = "References" })
-		map("n", "<leader>fi", builtin.lsp_implementations, { desc = "Implementations" })
+		map("n", "<leader>ls", builtin.lsp_dynamic_workspace_symbols, { desc = "Workspace symbols" })
+		map("n", "<leader>ld", builtin.lsp_document_symbols, { desc = "Document symbols" })
+		map("n", "<leader>lr", builtin.lsp_references, { desc = "References" })
+		map("n", "<leader>li", builtin.lsp_implementations, { desc = "Implementations" })
 
 		-- Git
-		map("n", "<leader>glc", builtin.git_commits, { desc = "Git commits" })
+		map("n", "<leader>gc", builtin.git_commits, { desc = "Git commits" })
+		map("n", "<leader>gb", builtin.git_branches, { desc = "Git branches" })
+		map("n", "<leader>gs", builtin.git_status, { desc = "Git status" })
 
 		-- Безопасная версия команд
 		local safe_builtin = setmetatable({}, {

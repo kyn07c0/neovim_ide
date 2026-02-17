@@ -3,9 +3,9 @@
 return {
 	"nvim-treesitter/nvim-treesitter",
 	branch = "main", -- обязательно, master заморожен
-	version = false,
 	build = ":TSUpdate", -- обновляет парсеры при :Lazy sync / install
-	lazy = false,
+	event = { "BufReadPre", "BufNewFile" }, -- ← Загрузка при открытии файла
+	cmd = { "TSUpdate", "TSInstall", "TSUninstall" },
 
 	config = function()
 		local install_dir = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/parser"

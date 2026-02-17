@@ -17,9 +17,10 @@ return {
 				mode = "buffers", -- показываем буферы, а не табы
 				themable = true,
 				numbers = "ordinal", -- номера буферов (1, 2, 3...)
-				--close_command = "bdelete! %d", -- команда закрытия
-				--right_mouse_command = "bdelete! %d",
-				--middle_mouse_command = nil,
+
+				-- Отключаем тяжелые features
+				diagnostics = false, -- отключаем для скорости
+				separator_style = "thin", -- "slant" требует больше вычислений
 
 				indicator = {
 					icon = "▎", -- индикатор активного буфера
@@ -44,7 +45,6 @@ return {
 				max_prefix_length = 15,
 				tab_size = 18,
 
-				diagnostics = "nvim_lsp", -- показ ошибок/варнингов от LSP
 				diagnostics_update_in_insert = false,
 
 				diagnostics_indicator = function(count, level, diagnostics_dict, context)
@@ -91,14 +91,15 @@ return {
 				offsets = {
 					{
 						filetype = "neo-tree",
-						text = "File Explorer",
+						text = "Files",
 						highlight = "Directory",
 						text_align = "left",
+						separator = true,
 					},
 				},
 
-				separator_style = "slant", -- или "thick", "thin", "slope"
-				always_show_bufferline = true,
+				always_show_bufferline = false,
+				sort_by = "insert_after_current", -- быстрая сортировка
 
 				-- Клавиши для закрытия
 				close_command = function(bufnum)

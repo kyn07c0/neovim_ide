@@ -8,7 +8,6 @@ return {
 		"theHamsta/nvim-dap-virtual-text", -- значения переменных в коде
 		"jay-babu/mason-nvim-dap.nvim", -- мост mason → dap (автоустановка codelldb)
 		"nvim-neotest/nvim-nio", -- зависимость dap-ui (asyncio-like)
-		"leoluz/nvim-dap-go", -- Адаптер для Go (если multi-lang)
 	},
 
 	config = function()
@@ -39,7 +38,6 @@ return {
 		dap.adapters.codelldb = {
 			type = "server",
 			port = "${port}",
-			host = "127.0.0.1",
 			executable = {
 				command = "codelldb", -- mason добавит в PATH
 				args = { "--port", "${port}" },
@@ -54,7 +52,7 @@ return {
 				request = "launch",
 				program = function()
 					-- Запрашиваем путь к исполняемому файлу (можно автоматизировать через CMake)
-					return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/build/", "file")
+					return vim.fn.input("Path: ", vim.fn.getcwd() .. "/build/", "file")
 				end,
 				cwd = "${workspaceFolder}",
 				stopOnEntry = false, -- не останавливаться на main

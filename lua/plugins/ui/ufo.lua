@@ -2,22 +2,24 @@
 
 return {
 	"kevinhwang91/nvim-ufo",
-	dependencies = {
-		"kevinhwang91/promise-async",
-	},
-	event = { "BufReadPost", "BufNewFile" },
+	dependencies = { "kevinhwang91/promise-async" },
+	event = "VeryLazy",
 
 	config = function()
 		-- Рекомендуемые настройки для ufo + treesitter
-		vim.o.foldcolumn = "1" -- показывать колонку fold (1 символ)
 		vim.o.foldlevel = 99 -- не сворачивать ничего по умолчанию (zR / zm для управления)
 		vim.o.foldlevelstart = 99
-		vim.o.foldenable = true
+		vim.o.foldenable = false
 
 		-- Используем treesitter как основной провайдер folding
 		require("ufo").setup({
 			provider_selector = function(bufnr, filetype, buftype)
-				return { "treesitter", "indent" } -- сначала treesitter, fallback на indent
+				-- Отключаем для больших файлов
+				local line_count = vim.api.nvim_buf_line_count(bufnr)
+				if line_count > 10000 then
+					return { "indent" } -- ← только indent, не treesitter
+				end
+				return { "treesitter", "indent" }
 			end,
 
 			-- Красивый preview при hover над folded строкой
@@ -29,38 +31,20 @@ return {
 				},
 			},
 
-			-- Отключить в некоторых файлах (опционально)
-			open_fold_hl_timeout = 150,
-			close_fold_kinds_for_ft = {
-				default = { "imports", "comment" },
-			},
-			enable_get_fold_virt_text = true,
-
 			-- Кастомный текст для folded строк (очень красиво)
 			fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
 				local newVirtText = {}
-				local suffix = " 󰇘 " .. (endLnum - lnum + 1) .. " lines "
+				local suffix = " 󰁂 " .. (endLnum - lnum) .. " "
 				local sufWidth = vim.fn.strdisplaywidth(suffix)
 				local targetWidth = width - sufWidth
-				local curWidth = 0
 
 				for _, chunk in ipairs(virtText) do
 					local chunkText = chunk[1]
 					local chunkWidth = vim.fn.strdisplaywidth(chunkText)
-					if targetWidth > curWidth + chunkWidth then
+					if targetWidth > 0 then
 						table.insert(newVirtText, chunk)
-					else
-						chunkText = truncate(chunkText, targetWidth - curWidth)
-						local hlGroup = chunk[2]
-						table.insert(newVirtText, { chunkText, hlGroup })
-						chunkWidth = vim.fn.strdisplaywidth(chunkText)
-						-- Добавляем ellipsis если обрезано
-						if curWidth + chunkWidth < targetWidth then
-							suffix = suffix .. "…"
-						end
-						break
+						targetWidth = targetWidth - chunkWidth
 					end
-					curWidth = curWidth + chunkWidth
 				end
 
 				table.insert(newVirtText, { suffix, "MoreMsg" })

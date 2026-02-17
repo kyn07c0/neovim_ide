@@ -9,13 +9,27 @@ return {
 		"MunifTanjim/nui.nvim",
 		"3rd/image.nvim", -- preview изображений (опционально)
 	},
-	cmd = "Neotree",
+	cmd = { "Neotree", "NeoTreeShow", "NeoTreeFocus" },
 	keys = {
 		{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle Neo-tree" },
 		{ "<leader>o", "<cmd>Neotree focus<cr>", desc = "Focus Neo-tree" },
 	},
 
 	config = function()
+		-- Троттлинг для refresh
+		local refresh_timer = nil
+		local function throttled_refresh()
+			if refresh_timer then
+				vim.fn.timer_stop(refresh_timer)
+			end
+			refresh_timer = vim.fn.timer_start(500, function()
+				pcall(function()
+					require("neo-tree.sources.manager").refresh("filesystem")
+				end)
+				refresh_timer = nil
+			end)
+		end
+
 		require("neo-tree").setup({
 			close_if_last_window = false,
 			popup_border_style = "rounded",
@@ -64,10 +78,7 @@ return {
 				},
 
 				-- Использовать фиксированный корень
-				bind_to_cwd = true,
-				cwd_target = {
-					sidebar = "tab",
-				},
+				bind_to_cwd = false,
 
 				-- Группировка пустых директорий
 				group_empty_dirs = false,
@@ -205,10 +216,10 @@ return {
 				position = "left",
 				width = 30,
 				auto_expand_width = false,
-				resize_timer_interval = 0,
-				preserve_window_proportions = false,
 				mappings = {
-					["<space>"] = "none", -- Отключаем пробел, если он конфликтует
+					["<space>"] = "none",
+					["<cr>"] = "open",
+					["o"] = "open",
 				},
 			},
 
@@ -228,8 +239,11 @@ return {
 							local winid = vim.api.nvim_get_current_win()
 
 							-- Проверяем, что окно всё ещё валидно
-							if not vim.api.nvim_win_is_valid(winid) then
-								return
+							if vim.api.nvim_win_is_valid(winid) then
+								local bufnr = vim.api.nvim_win_get_buf(winid)
+								if vim.bo[bufnr].filetype == "neo-tree" then
+									pcall(vim.api.nvim_win_set_width, winid, 30)
+								end
 							end
 
 							-- Проверяем, что мы действительно в буфере neo-tree
@@ -256,12 +270,7 @@ return {
 				{
 					event = "diagnostic_changed",
 					handler = function()
-						vim.defer_fn(function()
-							-- Обновляем только иконки диагностики, не дерево
-							pcall(function()
-								require("neo-tree.sources.filesystem.components").diagnostics.refresh()
-							end)
-						end, 50)
+						throttled_refresh()
 					end,
 				},
 				-- Обновление при сохранении файла
@@ -294,6 +303,13 @@ return {
 					end,
 				},
 			},
+		})
+
+		vim.api.nvim_create_autocmd("BufWritePost", {
+			pattern = "*.cpp,*.c,*.h,*.hpp,*.lua",
+			callback = function()
+				throttled_refresh()
+			end,
 		})
 	end,
 }

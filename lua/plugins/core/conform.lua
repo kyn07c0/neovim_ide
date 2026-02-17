@@ -11,7 +11,7 @@ return {
 				require("conform").format({ async = true, lsp_format = "fallback" })
 			end,
 			mode = { "n", "v" },
-			desc = "Format buffer (conform)",
+			desc = "Format buffer",
 		},
 	},
 
@@ -24,11 +24,20 @@ return {
 			lsp_format = "fallback",
 		},
 
-		format_on_save = {
-			-- можно отключить для каких-то типов файлов
-			timeout_ms = 2500,
-			lsp_format = "fallback",
-		},
+		-- асинхронное форматирование при сохранении
+		format_on_save = function(bufnr)
+			-- отключаем для больших файлов
+			local line_count = vim.api.nvim_buf_line_count(bufnr)
+			if line_count > 5000 then
+				return
+			end
+
+			return {
+				timeout_ms = 2500,
+				lsp_format = "fallback",
+				async = true,
+			}
+		end,
 
 		formatters_by_ft = {
 			lua = { "stylua" },
@@ -79,23 +88,14 @@ return {
 		-- Настройки конкретных форматтеров (очень полезно для clang-format)
 		formatters = {
 			clang_format = {
-				-- По умолчанию ищет .clang-format в проекте → в родительских папках → в $HOME
-				-- Если нужно явно указать стиль — раскомментируйте нужный вариант:
-
-				-- 1. Использовать конкретный файл (редко нужно)
-				-- prepend_args = { "--style=file:/путь/к/.clang-format" },
-
-				-- 2. Явно указать fallback-стиль, если .clang-format не найден
-				-- prepend_args = { "--fallback-style=LLVM" },          -- или Google, Chromium, Mozilla, WebKit
-				-- prepend_args = { "--fallback-style=file" },          -- искать .clang-format
-
-				-- 3. Самый популярный вариант — дать приоритет файлу проекта, а если нет — LLVM/Google
-				prepend_args = {
-					"--fallback-style=LLVM",
-					"--style={BasedOnStyle: LLVM, IndentWidth: 4, TabWidth: 4, UseTab: Always, ColumnLimit: 0}",
-				},
+				-- Используем файл проекта или быстрый fallback
+				prepend_args = { "--fallback-style=LLVM" },
+				-- Таймаут для больших C++ файлов
+				timeout_ms = 1000,
 			},
-
+			stylua = {
+				timeout_ms = 500,
+			},
 			shfmt = {
 				prepend_args = { "-i", "4", "-ci" },
 			},
@@ -115,13 +115,9 @@ return {
 
 				if client and (ft == "cpp" or ft == "c" or ft:match("^h")) then
 					client.server_capabilities.documentFormattingProvider = false
-					client.server_capabilities.documentRangeFormattingProvider = false
 					print("Отключено LSP форматирование для C/C++")
 				end
 			end,
 		})
-
-		-- Если вы хотите видеть, какие форматтеры будут запущены
-		-- vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
 	end,
 }
