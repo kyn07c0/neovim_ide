@@ -9,11 +9,16 @@ local autocmd_group = vim.api.nvim_create_augroup("UserConfig", { clear = true }
 vim.api.nvim_create_autocmd("BufWritePre", {
 	group = autocmd_group,
 	pattern = { "*.cpp", "*.c", "*.h", "*.hpp", "*.cc", "*.cxx" },
-	callback = function()
+	callback = function(ev)
 		-- Форматируем через LSP, если доступно
-		local clients = vim.lsp.get_clients()
+		local clients = vim.lsp.get_clients({ bufnr = ev.buf, name = "clangd" })
 		if #clients > 0 then
-			vim.lsp.buf.format({ async = false })
+			vim.lsp.buf.format({
+				async = false,
+				filter = function(client)
+					return client.name == "clangd"
+				end,
+			})
 		end
 	end,
 	desc = "Автоформатирование C++ файлов",
@@ -23,10 +28,15 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 vim.api.nvim_create_autocmd("BufWritePre", {
 	group = autocmd_group,
 	pattern = { "*.lua" },
-	callback = function()
-		local clients = vim.lsp.get_clients()
+	callback = function(ev)
+		local clients = vim.lsp.get_clients({ bufnr = ev.buf, name = "lua_ls" })
 		if #clients > 0 then
-			vim.lsp.buf.format({ async = false })
+			vim.lsp.buf.format({
+				async = false,
+				filter = function(client)
+					return client.name == "lua_ls"
+				end,
+			})
 		end
 	end,
 	desc = "Автоформатирование Lua файлов",
@@ -385,6 +395,22 @@ vim.api.nvim_create_autocmd("WinResized", {
 			end
 		end
 	end,
+})
+
+-- Обновление neo-tree после git операций
+vim.api.nvim_create_autocmd({ "FocusGained", "ShellCmdPost" }, {
+	group = autocmd_group,
+	pattern = "*",
+	callback = function()
+		-- Проверяем, загружен ли neo-tree
+		local ok, manager = pcall(require, "neo-tree.sources.manager")
+		if ok then
+			vim.defer_fn(function()
+				manager.refresh("filesystem")
+			end, 100)
+		end
+	end,
+	desc = "Обновление neo-tree после git операций",
 })
 
 print("✓ Автокоманды загружены")

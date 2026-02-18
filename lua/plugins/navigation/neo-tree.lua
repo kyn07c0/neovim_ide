@@ -235,6 +235,8 @@ return {
 						-- Откладываем выполнение до следующего тика event loop,
 						-- чтобы избежать конфликтов с закрывающимися окнами
 						vim.schedule(function()
+							require("neo-tree.sources.manager").refresh("filesystem")
+
 							-- Получаем текущее окно neo-tree
 							local winid = vim.api.nvim_get_current_win()
 
@@ -275,15 +277,6 @@ return {
 						throttled_refresh()
 					end,
 				},
-				-- Обновление при сохранении файла
-				--{
-				--	event = "vim_buffer_enter",
-				--	handler = function()
-				--		vim.defer_fn(function()
-				--			require("neo-tree.sources.manager").refresh("filesystem")
-				--		end, 100)
-				--	end,
-				--},
 				{
 					event = "before_render",
 					handler = function()
@@ -298,10 +291,18 @@ return {
 						end
 						if closing_windows > 0 then
 							vim.defer_fn(function()
-								vim.cmd("NeoTreeShow")
+								local manager = require("neo-tree.sources.manager")
+								pcall(manager.show, "filesystem")
 							end, 100)
 							return { skip = true }
 						end
+					end,
+				},
+				-- Обновление при возвращении фокуса в nvim
+				{
+					event = "vim_resume", -- или "FocusGained"
+					handler = function()
+						require("neo-tree.sources.manager").refresh("filesystem")
 					end,
 				},
 			},

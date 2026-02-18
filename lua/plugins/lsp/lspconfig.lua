@@ -60,6 +60,7 @@ return {
 			cmd = {
 				"clangd",
 				"--background-index", -- Фоновое индексирование ВСЕХ файлов
+				"--background-index-priority=normal", -- Нормальный приоритет вместо low
 				"--clang-tidy",
 				"--header-insertion=iwyu",
 				"--completion-style=detailed",
@@ -78,6 +79,8 @@ return {
 				"--limit-results=50", -- Без ограничений результатов
 				"--limit-references=100", -- ← ограничиваем референсы
 				"--rename-file-limit=50", -- ← ограничиваем переименования
+				"--index", -- форсировать индексирование всех файлов
+				"--index-on-change", -- индексировать даже без открытия файлов
 			},
 
 			-- fallback-флаги, если нет compile_commands.json
@@ -87,6 +90,12 @@ return {
 				clangdFileStatus = true,
 				usePlaceholders = true,
 				completeUnimported = true, -- Дополнение из неимпортированных файлов
+				backgroundIndex = true, -- НОВОЕ: включить фоновое индексирование
+				-- индексировать весь проект сразу
+				index = {
+					enabled = true,
+					threads = 4, -- количество потоков для индексации
+				},
 			},
 
 			-- filetypes остаются те же
