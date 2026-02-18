@@ -5,7 +5,6 @@ return {
 	branch = "main", -- обязательно, master заморожен
 	build = ":TSUpdate", -- обновляет парсеры при :Lazy sync / install
 	event = { "BufReadPre", "BufNewFile" }, -- ← Загрузка при открытии файла
-	cmd = { "TSUpdate", "TSInstall", "TSUninstall" },
 
 	config = function()
 		local install_dir = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/parser"
@@ -60,24 +59,13 @@ return {
 		})
 
 		require("nvim-treesitter.config").setup({
-			-- ========================================
-			-- ОСНОВНЫЕ НАСТРОЙКИ
-			-- ========================================
-			-- Явное указание пути установки
-			install_dir = install_dir,
 
-			-- Автоматическая установка парсеров
-			auto_install = true,
+			install_dir = install_dir, -- Явное указание пути установки
+			auto_install = true, -- Автоматическая установка парсеров
+			sync_install = false, -- Синхронная установка (может замедлить запуск)
+			ignore_install = { "phpdoc", "tree-sitter-phpdoc" }, -- Игнорировать установку для определенных языков
 
-			-- Синхронная установка (может замедлить запуск)
-			sync_install = false,
-
-			-- Игнорировать установку для определенных языков
-			ignore_install = { "phpdoc", "tree-sitter-phpdoc" },
-
-			-- ========================================
-			-- СПИСОК ПАРСЕРОВ (ОБЯЗАТЕЛЬНО ДЛЯ C/C++)
-			-- ========================================
+			-- Список парсеров
 			ensure_installed = {
 				-- Основные языки программирования
 				"c", -- Язык C
@@ -126,18 +114,12 @@ return {
 				"query", -- Treesitter queries
 			},
 
-			-- ========================================
-			-- ПОДСВЕТКА СИНТАКСИСА (ГЛАВНОЕ!)
-			-- ========================================
+			-- Подсветка синтаксиса
 			highlight = {
 				enable = true,
 
 				-- Использовать стандартную подсветку Vim как fallback
-				additional_vim_regex_highlighting = {
-					"markdown", -- Для лучшей подсветки Markdown
-					"c", -- Дополнительная подсветка для C
-					"cpp", -- Дополнительная подсветка для C++
-				},
+				additional_vim_regex_highlighting = false,
 
 				-- Отключить для больших файлов (оптимизация)
 				disable = function(lang, buf)
@@ -155,29 +137,14 @@ return {
 						return true
 					end
 
-					-- Отключить для определенных языков (опционально)
-					local disabled_langs = { "latex", "tex" }
-					return vim.tbl_contains(disabled_langs, lang)
+					return false
 				end,
 			},
 
-			-- ========================================
-			-- АВТОМАТИЧЕСКИЕ ОТСТУПЫ
-			-- ========================================
-			indent = {
-				enable = true,
+			-- Автоматические отступы
+			indent = { enable = true },
 
-				-- Отключить для языков с проблемными отступами
-				disable = {
-					"python", -- Лучше использовать black/isort
-					"yaml", -- Чувствителен к пробелам
-					"cpp", -- Иногда ломает отступы в шаблонах
-				},
-			},
-
-			-- ========================================
-			-- ИНКРЕМЕНТАЛЬНЫЙ ВЫБОР
-			-- ========================================
+			-- Инкрементальный выбор
 			incremental_selection = {
 				enable = true,
 				keymaps = {
@@ -188,9 +155,7 @@ return {
 				},
 			},
 
-			-- ========================================
-			-- ТЕКСТОВЫЕ ОБЪЕКТЫ (ОЧЕНЬ ПОЛЕЗНО!)
-			-- ========================================
+			-- Текстовые объектв
 			textobjects = {
 				select = {
 					enable = true,
@@ -203,8 +168,6 @@ return {
 						["ic"] = "@class.inner", -- Тело класса
 						["ab"] = "@block.outer", -- Блок кода { }
 						["ib"] = "@block.inner", -- Содержимое блока
-
-						-- Универсальные
 						["a/"] = "@comment.outer", -- Комментарий
 						["i/"] = "@comment.inner", -- Текст комментария
 					},
@@ -254,9 +217,7 @@ return {
 				["txx"] = "cpp",
 			},
 
-			-- ========================================
-			-- ЦВЕТНЫЕ СКОБКИ (RAINBOW)
-			-- ========================================
+			-- Цветные скобки
 			rainbow = {
 				enable = true,
 				extended_mode = true, -- Также раскрашивать HTML теги
@@ -272,9 +233,7 @@ return {
 				},
 			},
 
-			-- ========================================
-			-- КОНТЕКСТ КОММЕНТАРИЕВ (ДЛЯ .H/.CPP)
-			-- ========================================
+			-- Контекст комментариев (для .h/.cpp)
 			context_commentstring = {
 				enable = true,
 				enable_autocmd = false,
@@ -287,9 +246,7 @@ return {
 				},
 			},
 
-			-- ========================================
-			-- AUTOTAG (АВТОМАТИЧЕСКИЕ ТЕГИ)
-			-- ========================================
+			-- Автоматические теги
 			autotag = {
 				enable = true,
 				filetypes = {
@@ -307,17 +264,13 @@ return {
 				},
 			},
 
-			-- ========================================
-			-- MATCHUP (СОПОСТАВЛЕНИЕ СКОБОК И ТЕГОВ)
-			-- ========================================
+			-- Сопоставление скобок и тегов
 			matchup = {
 				enable = true,
 				include_match_words = true,
 			},
 
-			-- ========================================
-			-- PLAYGROUND (ОТЛАДКА TREESITTER)
-			-- ========================================
+			-- Отладка TREESITTER
 			playground = {
 				enable = true,
 				disable = {},
@@ -337,18 +290,14 @@ return {
 				},
 			},
 
-			-- ========================================
-			-- QUERY LINTER (ПРОВЕРКА QUERIES)
-			-- ========================================
+			-- Проверка запросов
 			query_linter = {
 				enable = true,
 				use_virtual_text = true,
 				lint_events = { "BufWrite", "CursorHold" },
 			},
 
-			-- ========================================
-			-- REFACTOR (РЕФАКТОРИНГ)
-			-- ========================================
+			-- Рефакторинг
 			refactor = {
 				highlight_definitions = {
 					enable = true,
@@ -407,5 +356,37 @@ return {
 				vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 			end,
 		})
+
+		-- Настройка цветов для методов класса
+		vim.api.nvim_create_autocmd("ColorScheme", {
+			callback = function()
+				-- Методы классов (отличаются от обычных функций)
+				vim.api.nvim_set_hl(0, "@function.method", { fg = "#ff9e64", bold = true })
+				vim.api.nvim_set_hl(0, "@function.method.call", { fg = "#ff9e64", italic = true })
+
+				-- Обычные функции
+				vim.api.nvim_set_hl(0, "@function.call", { fg = "#7aa2f7" })
+				vim.api.nvim_set_hl(0, "@function", { fg = "#7aa2f7", bold = true })
+
+				-- Конструкторы/деструкторы
+				vim.api.nvim_set_hl(0, "@constructor", { fg = "#e0af68", bold = true })
+
+				-- Поля классов
+				vim.api.nvim_set_hl(0, "@field", { fg = "#9ece6a" })
+				vim.api.nvim_set_hl(0, "@property", { fg = "#9ece6a", italic = true })
+
+				-- Переменные члены класса (через LSP семантические токены)
+				vim.api.nvim_set_hl(0, "@lsp.type.method", { link = "@function.method" })
+				vim.api.nvim_set_hl(0, "@lsp.typemod.method.defaultLibrary", { fg = "#ff9e64", bold = true })
+				vim.api.nvim_set_hl(0, "@lsp.type.property", { link = "@property" })
+				vim.api.nvim_set_hl(0, "@lsp.type.variable", { fg = "#c0caf5" })
+				vim.api.nvim_set_hl(0, "@lsp.typemod.variable.classScope", { fg = "#c0caf5", italic = true })
+			end,
+		})
+
+		-- Применить сразу, если цветовая схема уже загружена
+		if vim.g.colors_name then
+			vim.cmd("doautocmd ColorScheme")
+		end
 	end,
 }

@@ -2,7 +2,6 @@
 
 return {
 	"nvim-telescope/telescope.nvim",
-	branch = "main",
 	dependencies = {
 		"nvim-lua/plenary.nvim",
 		{
