@@ -257,7 +257,9 @@ return {
 							pcall(vim.api.nvim_win_set_width, winid, 30)
 
 							-- Безопасно перемещаем окно влево (используем pcall для перехвата ошибок)
-							local ok, _ = pcall(vim.cmd, "wincmd H")
+							local ok, _ = pcall(function()
+								vim.cmd.wincmd("H")
+							end)
 							if not ok then
 								-- Если не удалось переместить (например, окно закрывается),
 								-- просто игнорируем ошибку
@@ -290,7 +292,7 @@ return {
 						local closing_windows = 0
 						for _, win in ipairs(windows) do
 							local config = vim.api.nvim_win_get_config(win)
-							if config and config.close then
+							if type(config) == "table" and config.relative == "" then
 								closing_windows = closing_windows + 1
 							end
 						end
