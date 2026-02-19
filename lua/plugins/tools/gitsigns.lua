@@ -81,15 +81,6 @@ return {
 			map("n", "<leader>hD", function()
 				gs.diffthis("~")
 			end, { desc = "Diff This ~" })
-
-			-- Интеграция с which-key (опционально)
-			local wk = require("which-key")
-			wk.add({
-				{ "<leader>h", group = "hunks (gitsigns)" },
-				{ "<leader>hs", desc = "Stage hunk" },
-				{ "<leader>hr", desc = "Reset hunk" },
-				-- ... остальные
-			})
 		end,
 	},
 }

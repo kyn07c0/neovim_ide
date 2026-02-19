@@ -3,8 +3,6 @@
 return {
 	-- Git знаки
 	require("plugins.tools.gitsigns"),
-	-- Подсказки клавиш
-	require("plugins.tools.which-key"),
 	-- Открывает lazygit (мощный Git TUI)
 	require("plugins.tools.lazygit"),
 	-- Комментирование кода

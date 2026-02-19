@@ -2,16 +2,21 @@
 
 return {
 	"nvim-treesitter/nvim-treesitter",
+	branch = "main",
 	version = false,
-	build = ":TSUpdate", -- обновляет парсеры при :Lazy sync / install
-	event = { "BufReadPre", "BufNewFile" }, -- Загрузка при открытии файла
-	cmd = { "TSUpdate", "TSInstall", "TSUninstall" },
 
 	config = function()
+		-- Проверяем доступность модуля
+		local ok, treesitter = pcall(require, "nvim-treesitter")
+		if not ok then
+			vim.notify("nvim-treesitter не найден", vim.log.levels.ERROR)
+			return
+		end
+
 		local install_dir = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/parser"
 		-- Устанавливаем нужные парсеры один раз (асинхронно)
 		-- Если уже установлены — пропустит
-		require("nvim-treesitter").install({
+		treesitter.install({
 			-- Основные языки программирования
 			"c", -- Язык C
 			"cpp", -- Язык C++
@@ -311,7 +316,7 @@ return {
 		vim.api.nvim_create_autocmd({ "FileType" }, {
 			pattern = { "c", "cpp", "lua", "vim", "markdown", "json", "yaml", "bash" },
 			callback = function(ev)
-				local ok, _ = pcall(vim.treesitter.start, ev.buf)
+				local ok = pcall(vim.treesitter.start, ev.buf)
 				if not ok then
 					-- Если парсер ещё не готов — пробуем позже (через 100 мс)
 					vim.defer_fn(function()
@@ -320,7 +325,7 @@ return {
 				end
 			end,
 		})
-
+		--[[
 		-- Folding для C/C++ (точный, на основе дерева)
 		vim.api.nvim_create_autocmd({ "FileType" }, {
 			pattern = { "c", "cpp" },
@@ -330,7 +335,7 @@ return {
 				vim.wo.foldenable = false -- не сворачивать сразу при открытии
 			end,
 		})
-
+--]]
 		-- Indent на основе treesitter (экспериментально, но полезно)
 		vim.api.nvim_create_autocmd({ "FileType" }, {
 			pattern = { "c", "cpp", "lua" },

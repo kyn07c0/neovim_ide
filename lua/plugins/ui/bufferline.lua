@@ -187,17 +187,5 @@ return {
 				vim.cmd("BufferLineGoToBuffer " .. i)
 			end, { desc = "Go to buffer " .. i })
 		end
-
-		-- Интеграция с which-key (добавьте в ваш which-key.lua или здесь)
-		local wk = require("which-key")
-		wk.add({
-			{ "<leader>t", group = "tabs / buffers" },
-			{ "<leader>tn", desc = "Next buffer" },
-			{ "<leader>tp", desc = "Previous buffer" },
-			{ "<leader>tl", desc = "Close left" },
-			{ "<leader>tr", desc = "Close right" },
-			{ "<leader>tc", desc = "Close picked" },
-			{ "<leader>tp", desc = "Pin buffer" },
-		})
 	end,
 }

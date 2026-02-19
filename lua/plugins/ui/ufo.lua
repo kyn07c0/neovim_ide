@@ -10,6 +10,7 @@ return {
 		vim.o.foldlevel = 99 -- не сворачивать ничего по умолчанию (zR / zm для управления)
 		vim.o.foldlevelstart = 99
 		vim.o.foldenable = false
+		vim.o.foldmethod = "manual"
 
 		-- Используем treesitter как основной провайдер folding
 		require("ufo").setup({
