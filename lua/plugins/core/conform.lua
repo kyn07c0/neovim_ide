@@ -26,12 +26,6 @@ return {
 
 		-- асинхронное форматирование при сохранении
 		format_on_save = function(bufnr)
-			local ft = vim.bo[bufnr].filetype
-			-- Не форматируем C/C++ здесь, используем autocmds.lua
-			if ft == "cpp" or ft == "c" or ft:match("^h") then
-				return nil
-			end
-
 			-- отключаем для больших файлов
 			local line_count = vim.api.nvim_buf_line_count(bufnr)
 			if line_count > 5000 then
@@ -41,9 +35,15 @@ return {
 			return {
 				timeout_ms = 2500,
 				lsp_format = "fallback",
-				async = true,
+				--async = true,
 			}
 		end,
+
+		-- асинхронное форматирование ПОСЛЕ сохранения (опционально)
+		format_after_save = {
+			timeout_ms = 2500,
+			lsp_format = "fallback",
+		},
 
 		formatters_by_ft = {
 			lua = { "stylua" },

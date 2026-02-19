@@ -23,7 +23,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	end,
 	desc = "Автоформатирование C++ файлов",
 })
-
+--[[
 -- Форматирование Lua файлов при сохранении
 vim.api.nvim_create_autocmd("BufWritePre", {
 	group = autocmd_group,
@@ -41,7 +41,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	end,
 	desc = "Автоформатирование Lua файлов",
 })
-
+--]]
 ---------- АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ ----------
 
 -- Автосохранение при потере фокуса
@@ -175,6 +175,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
 ---------- АВТООПРЕДЕЛЕНИЕ ФАЙЛОВ ----------
 
+--[[
 -- Автоопределение типов файлов по расширению
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
 	group = autocmd_group,
@@ -246,7 +247,7 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
 	end,
 	desc = "Автоопределение типов файлов",
 })
-
+--]]
 ---------- АВТООПРЕДЕЛЕНИЕ ПРОЕКТА ----------
 
 -- Автоопределение CMake проекта
