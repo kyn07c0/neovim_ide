@@ -2,9 +2,10 @@
 
 return {
 	"nvim-treesitter/nvim-treesitter",
-	branch = "main", -- обязательно, master заморожен
+	version = false,
 	build = ":TSUpdate", -- обновляет парсеры при :Lazy sync / install
-	event = { "BufReadPre", "BufNewFile" }, -- ← Загрузка при открытии файла
+	event = { "BufReadPre", "BufNewFile" }, -- Загрузка при открытии файла
+	cmd = { "TSUpdate", "TSInstall", "TSUninstall" },
 
 	config = function()
 		local install_dir = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/parser"
@@ -120,25 +121,6 @@ return {
 
 				-- Использовать стандартную подсветку Vim как fallback
 				additional_vim_regex_highlighting = false,
-
-				-- Отключить для больших файлов (оптимизация)
-				disable = function(lang, buf)
-					local max_filesize = 1024 * 1024 -- 1 MB
-					local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-					if ok and stats and stats.size > max_filesize then
-						vim.notify(
-							string.format(
-								"Treesitter отключен для файла %s (%.2f MB > 1 MB)",
-								vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":t"),
-								stats.size / (1024 * 1024)
-							),
-							vim.log.levels.WARN
-						)
-						return true
-					end
-
-					return false
-				end,
 			},
 
 			-- Автоматические отступы
