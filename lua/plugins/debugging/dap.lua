@@ -7,7 +7,8 @@ return {
 		"rcarriga/nvim-dap-ui",
 		"theHamsta/nvim-dap-virtual-text", -- Зависимость для виртуального текста
 		"nvim-neotest/nvim-nio",
-		"nvim-tree/nvim-web-devicons",
+		"williamboman/mason.nvim",
+		"jay-babu/mason-nvim-dap.nvim",
 	},
 	config = function()
 		local dap = require("dap")
@@ -29,43 +30,31 @@ return {
 		vim.fn.sign_define("DapStopped", {
 			text = "➤",
 			texthl = "DiagnosticSignWarn",
-			linehl = "",
+			linehl = "debugPC",
 			numhl = "",
 		})
 
 		-- 2. Настройка dap-ui (Минимализм: только консоль внизу)
 		dapui.setup({
-			icons = { expanded = "▾", collapsed = "▸", current_frame = "▸" },
-			mappings = {
-				expand = { "<CR>", "<2-LeftMouse>" },
-				open = "o",
-				remove = "d",
-				edit = "e",
-				repl = "r",
-				toggle = "t",
-			},
 			layouts = {
 				{
-					elements = { "scopes", "console" },
+					elements = {
+						{ id = "scopes", size = 1.0 },
+					},
+					size = 0.25,
+					position = "right",
+				},
+				{
+					elements = { "repl" },
+					size = 0.25,
 					position = "bottom",
-					size = 15, -- Высота окна консоли
 				},
 			},
-			render = {
-				max_type_length = nil,
-				max_value_lines = 100,
-			},
-			floating = {
-				max_height = nil,
-				max_width = nil,
-				border = "rounded",
-				mappings = {
-					close = { "q", "<Esc>" },
-				},
-			},
+			floating = { border = "rounded" },
+			controls = { enabled = true },
 		})
 
-		-- 3. Автоматическое управление UI
+		-- Автооткрытие/закрытие UI
 		dap.listeners.after.event_initialized["dapui_config"] = function()
 			dapui.open()
 		end
@@ -86,6 +75,9 @@ return {
 				command = "codelldb",
 				args = { "--port", "${port}" },
 			},
+			_adapterSettings = {
+				showDisassembly = "never",
+			},
 		}
 
 		-- Умная функция для пути к исполняемому файлу
@@ -103,6 +95,11 @@ return {
 				program = get_cpp_program,
 				cwd = "${workspaceFolder}",
 				stopOnEntry = false,
+
+				showDisassembly = "never", -- варианты: "always", "auto", "never"
+				disassembly = { -- опционально, но полезно
+					syntaxHighlighting = false,
+				},
 			},
 		}
 		dap.configurations.c = dap.configurations.cpp
@@ -126,48 +123,31 @@ return {
 		}
 
 		-- 5. Клавиши (Keymaps)
-		local keymap = vim.keymap.set
 		local opts = { noremap = true, silent = true }
 
-		-- Отладка
-		keymap("n", "<leader>db", function()
-			dap.toggle_breakpoint()
-		end, opts)
-		keymap("n", "<leader>dB", function()
-			dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
-		end, opts)
-		keymap("n", "<leader>dc", function()
+		vim.keymap.set("n", "<F5>", function()
 			dap.continue()
-		end, opts)
-		keymap("n", "<leader>da", function()
-			dap.terminate()
-		end, opts)
-
-		-- Шагание
-		keymap("n", "<leader>di", function()
-			dap.step_into()
-		end, opts)
-		keymap("n", "<leader>do", function()
+		end, vim.tbl_extend("force", opts, { desc = "DAP Continue" }))
+		vim.keymap.set("n", "<F10>", function()
 			dap.step_over()
-		end, opts)
-		keymap("n", "<leader>de", function()
+		end, vim.tbl_extend("force", opts, { desc = "DAP Step Over" }))
+		vim.keymap.set("n", "<F11>", function()
+			dap.step_into()
+		end, vim.tbl_extend("force", opts, { desc = "DAP Step Into" }))
+		vim.keymap.set("n", "<F12>", function()
 			dap.step_out()
-		end, opts)
-
-		-- UI и прочее
-		keymap("n", "<leader>du", function()
+		end, vim.tbl_extend("force", opts, { desc = "DAP Step Out" }))
+		vim.keymap.set("n", "<leader>db", function()
+			dap.toggle_breakpoint()
+		end, vim.tbl_extend("force", opts, { desc = "DAP Toggle Breakpoint" }))
+		vim.keymap.set("n", "<leader>B", function()
+			dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
+		end, vim.tbl_extend("force", opts, { desc = "DAP Conditional Breakpoint" }))
+		vim.keymap.set("n", "<leader>dr", function()
+			dap.repl.toggle()
+		end, vim.tbl_extend("force", opts, { desc = "DAP REPL" }))
+		vim.keymap.set("n", "<leader>du", function()
 			dapui.toggle()
-		end, opts)
-		keymap("n", "<leader>dr", function()
-			dap.run_last()
-		end, opts)
-		keymap("n", "<leader>dh", function()
-			require("dap.ui.widgets").hover()
-		end, opts)
-
-		-- Оценка выражения в текущей строке (полезно вместе с virtual-text)
-		keymap("n", "<leader>dv", function()
-			require("dap").eval(vim.fn.expand("<cword>"))
-		end, opts)
+		end, vim.tbl_extend("force", opts, { desc = "DAP UI" }))
 	end,
 }

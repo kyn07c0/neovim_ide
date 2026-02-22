@@ -72,6 +72,10 @@ opt.path:append("**")
 opt.path:append("/usr/include")
 opt.path:append("/usr/local/include")
 
+---------- ПОДСВЕТКА ТЕКУЩЕЙ СТРОКИ ПРИ ОТЛАДКЕ ----------
+vim.api.nvim_set_hl(0, "debugPC", { bg = "#3c3836" }) -- Program counter
+vim.api.nvim_set_hl(0, "debugBreakpoint", { fg = "#fb4934" })
+
 ---------- ДИАГНОСТИКА ----------
 vim.diagnostic.config({
 	virtual_text = {

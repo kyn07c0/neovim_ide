@@ -49,19 +49,35 @@ return {
 					local theme = colors.theme
 					local palette = colors.palette
 
+					-- Цвет для разделителей (используется в нескольких местах)
+					local separator_color = palette.autumnYellow
+
 					return {
+						-- ==========================================
+						-- Базовые UI элементы
+						-- ==========================================
 						Normal = { bg = "none" },
 						NormalFloat = { bg = "none" },
-						FloatBorder = { bg = "none" },
-						FloatTitle = { bg = "none" },
 						NormalDark = { fg = theme.ui.fg_dim, bg = theme.ui.bg_m3 },
 						LazyNormal = { bg = theme.ui.bg_m3, fg = theme.ui.fg_dim },
 						MasonNormal = { bg = theme.ui.bg_m3, fg = theme.ui.fg_dim },
+
+						-- Разделители и границы (исправлено: перенесено из vim.defer_fn)
+						WinSeparator = { fg = separator_color },
+						VertSplit = { fg = separator_color },
+						FloatBorder = { fg = separator_color, bg = "none" },
+						FloatTitle = { bg = "none" },
+						TerminalBorder = { fg = theme.ui.bg_m3 },
+
+						-- Меню автодополнения (Pmenu)
 						Pmenu = { fg = theme.ui.shade0, bg = theme.ui.bg_p1 },
 						PmenuSel = { fg = "NONE", bg = theme.ui.bg_p2 },
 						PmenuSbar = { bg = theme.ui.bg_m1 },
 						PmenuThumb = { bg = theme.ui.bg_p2 },
 
+						-- ==========================================
+						-- Диагностика (LSP)
+						-- ==========================================
 						DiagnosticVirtualTextError = { bg = "none" },
 						DiagnosticVirtualTextWarn = { bg = "none" },
 						DiagnosticVirtualTextInfo = { bg = "none" },
@@ -72,6 +88,9 @@ return {
 						DiagnosticUnderlineInfo = { sp = palette.dragonBlue, undercurl = true },
 						DiagnosticUnderlineHint = { sp = palette.waveAqua1, undercurl = true },
 
+						-- ==========================================
+						-- Telescope
+						-- ==========================================
 						TelescopeTitle = { fg = theme.ui.special, bold = true },
 						TelescopePromptNormal = { bg = theme.ui.bg_p1 },
 						TelescopePromptBorder = { fg = theme.ui.bg_p1, bg = theme.ui.bg_p1 },
@@ -80,10 +99,16 @@ return {
 						TelescopePreviewNormal = { bg = theme.ui.bg_dim },
 						TelescopePreviewBorder = { bg = theme.ui.bg_dim, fg = theme.ui.bg_dim },
 
+						-- ==========================================
+						-- NeoTree
+						-- ==========================================
 						NeoTreeNormal = { bg = theme.ui.bg_m3 },
 						NeoTreeNormalNC = { bg = theme.ui.bg_m3 },
 						NeoTreeFloatBorder = { fg = theme.ui.float.fg_border, bg = theme.ui.bg_m3 },
 
+						-- ==========================================
+						-- BufferLine
+						-- ==========================================
 						BufferLineFill = { bg = theme.ui.bg_m3 },
 						BufferLineBackground = { bg = theme.ui.bg_m2, fg = theme.ui.fg_dim },
 						BufferLineBufferSelected = { bg = theme.ui.bg, fg = theme.ui.fg, bold = true },
@@ -93,55 +118,116 @@ return {
 						BufferLineSeparatorVisible = { bg = theme.ui.bg, fg = theme.ui.bg_m3 },
 						BufferLineIndicatorSelected = { fg = theme.ui.special },
 
+						-- ==========================================
+						-- Lualine
+						-- ==========================================
 						lualine_a_normal = { bg = theme.ui.special, fg = theme.ui.bg },
 						lualine_b_normal = { bg = theme.ui.bg_m3, fg = theme.ui.fg },
 						lualine_c_normal = { bg = theme.ui.bg_m3, fg = theme.ui.fg_dim },
 
+						-- ==========================================
+						-- nvim-cmp (Автодополнение)
+						-- ==========================================
 						CmpItemAbbr = { fg = theme.ui.fg },
 						CmpItemAbbrMatch = { fg = theme.ui.special, bold = true },
 						CmpItemKind = { fg = palette.carpYellow },
 						CmpItemMenu = { fg = palette.fujiGray },
 
+						-- ==========================================
+						-- Diff (Git)
+						-- ==========================================
 						DiffAdd = { bg = palette.winterGreen },
 						DiffChange = { bg = palette.winterYellow },
 						DiffDelete = { bg = palette.winterRed },
 						DiffText = { bg = palette.winterBlue },
 
+						-- ==========================================
+						-- Treesitter (Общие группы)
+						-- ==========================================
 						["@variable"] = { fg = theme.ui.fg },
 						["@variable.builtin"] = { fg = palette.roninYellow, italic = true },
+						["@variable.parameter"] = { fg = palette.peachRed, italic = true },
+						["@variable.member"] = { fg = palette.boatYellow2 },
+
 						["@function"] = { fg = palette.carpYellow, bold = true },
-						["@function.builtin"] = { fg = palette.springGreen },
-						["@method"] = { fg = palette.carpYellow },
-						["@parameter"] = { fg = palette.peachRed },
+						["@function.builtin"] = { fg = palette.springGreen, italic = true },
+						["@function.call"] = { fg = palette.carpYellow },
+						["@function.method"] = { fg = palette.crystalBlue },
+						["@function.method.call"] = { fg = palette.crystalBlue },
+
+						["@constructor"] = { fg = palette.springBlue, bold = true },
+
+						["@parameter"] = { fg = palette.peachRed, italic = true },
 						["@field"] = { fg = palette.boatYellow2 },
 						["@property"] = { fg = palette.springViolet2 },
-						["@constructor"] = { fg = palette.crystalBlue },
-						["@conditional"] = { fg = palette.autumnRed, italic = true },
-						["@repeat"] = { fg = palette.autumnRed, italic = true },
+
+						["@conditional"] = { fg = palette.autumnRed, bold = true },
+						["@repeat"] = { fg = palette.autumnRed, bold = true },
 						["@label"] = { fg = palette.boatYellow2 },
-						["@keyword"] = { fg = palette.autumnRed, italic = true },
-						["@keyword.function"] = { fg = palette.springBlue },
+						["@keyword"] = { fg = palette.autumnRed, bold = true },
+						["@keyword.function"] = { fg = palette.springBlue, italic = true },
 						["@keyword.operator"] = { fg = palette.autumnRed },
+						["@keyword.return"] = { fg = palette.autumnRed, bold = true },
+
 						["@operator"] = { fg = palette.springBlue },
-						["@exception"] = { fg = palette.autumnRed },
-						["@type"] = { fg = palette.springGreen },
+						["@exception"] = { fg = palette.autumnRed, bold = true },
+
+						["@type"] = { fg = palette.springGreen, bold = true },
 						["@type.builtin"] = { fg = palette.springGreen, italic = true },
-						["@structure"] = { fg = palette.waveAqua2 },
-						["@include"] = { fg = palette.springBlue },
+						["@type.definition"] = { fg = palette.springGreen, bold = true },
+						["@structure"] = { fg = palette.waveAqua2, bold = true },
+						["@namespace"] = { fg = palette.fujiGray, italic = true },
+						["@include"] = { fg = palette.springBlue, italic = true },
 						["@annotation"] = { fg = palette.fujiGray },
-						["@text.danger"] = { bg = palette.winterRed, fg = palette.fujiWhite },
-						["@text.warning"] = { bg = palette.winterYellow, fg = palette.fujiWhite },
-						["@text.note"] = { bg = palette.winterBlue, fg = palette.fujiWhite },
-						["@text.todo"] = { bg = palette.winterGreen, fg = palette.fujiWhite },
+						["@macro"] = { fg = palette.autumnYellow, italic = true },
 
-						["@lsp.type.class.cpp"] = { fg = palette.springGreen, bold = true },
-						["@lsp.type.enum.cpp"] = { fg = palette.waveAqua2 },
-						["@lsp.type.namespace.cpp"] = { fg = palette.fujiGray, italic = true },
-						["@lsp.type.macro.cpp"] = { fg = palette.autumnYellow },
-						["@lsp.type.typedef.cpp"] = { fg = palette.springGreen },
+						["@constant"] = { fg = palette.springViolet2, bold = true },
+						["@constant.builtin"] = { fg = palette.springViolet2, italic = true },
+						["@constant.macro"] = { fg = palette.autumnYellow },
 
-						Terminal = { bg = theme.ui.bg, fg = theme.ui.fg },
-						TerminalBorder = { fg = theme.ui.bg_m3 },
+						["@string"] = { fg = palette.waveGreen },
+						["@string.regex"] = { fg = palette.waveAqua1 },
+						["@string.escape"] = { fg = palette.springBlue, bold = true },
+						["@string.special"] = { fg = palette.springBlue },
+
+						["@number"] = { fg = palette.waveViolet },
+						["@number.float"] = { fg = palette.waveViolet },
+						["@boolean"] = { fg = palette.autumnRed, bold = true },
+
+						["@comment"] = { fg = palette.fujiGray, italic = true },
+						["@comment.todo"] = { fg = palette.winterGreen, bold = true, italic = true },
+						["@comment.note"] = { fg = palette.winterBlue, bold = true, italic = true },
+						["@comment.warning"] = { fg = palette.winterYellow, bold = true, italic = true },
+						["@comment.error"] = { fg = palette.winterRed, bold = true, italic = true },
+
+						["@text.danger"] = { bg = palette.winterRed, fg = palette.fujiWhite, bold = true },
+						["@text.warning"] = { bg = palette.winterYellow, fg = palette.fujiWhite, bold = true },
+						["@text.note"] = { bg = palette.winterBlue, fg = palette.fujiWhite, bold = true },
+						["@text.todo"] = { bg = palette.winterGreen, fg = palette.fujiWhite, bold = true },
+						["@text.uri"] = { fg = palette.springBlue, underline = true },
+						["@text.literal"] = { fg = palette.waveGreen, italic = true },
+						["@text.reference"] = { fg = palette.springViolet2, bold = true },
+						["@text.title"] = { fg = palette.carpYellow, bold = true },
+						["@text.emphasis"] = { fg = theme.ui.fg, italic = true },
+						["@text.strong"] = { fg = theme.ui.fg, bold = true },
+						["@text.strike"] = { fg = palette.fujiGray, strikethrough = true },
+
+						["@diff.plus"] = { fg = palette.winterGreen },
+						["@diff.minus"] = { fg = palette.winterRed },
+						["@diff.delta"] = { fg = palette.winterYellow },
+
+						["@tag"] = { fg = palette.autumnRed },
+						["@tag.attribute"] = { fg = palette.springViolet2, italic = true },
+						["@tag.delimiter"] = { fg = palette.springBlue },
+
+						["@markup.strong"] = { bold = true },
+						["@markup.italic"] = { italic = true },
+						["@markup.strikethrough"] = { strikethrough = true },
+						["@markup.underline"] = { underline = true },
+						["@markup.heading"] = { fg = palette.carpYellow, bold = true },
+						["@markup.quote"] = { fg = palette.fujiGray, italic = true },
+						["@markup.math"] = { fg = palette.springBlue },
+						["@markup.environment"] = { fg = palette.springGreen },
 					}
 				end,
 
@@ -152,20 +238,6 @@ return {
 			})
 
 			vim.cmd.colorscheme("kanagawa-" .. theme_variant)
-
-			-- ПРИНУДИТЕЛЬНАЯ НАСТРОЙКА РАЗДЕЛИТЕЛЕЙ ПОСЛЕ ЗАГРУЗКИ ТЕМЫ
-			vim.defer_fn(function()
-				-- Получаем цвет из палитры
-				local colors = require("kanagawa.colors").setup()
-				local yellow = colors.palette.autumnYellow
-
-				-- Устанавливаем цвет для всех возможных разделителей
-				vim.api.nvim_set_hl(0, "WinSeparator", { fg = yellow })
-				vim.api.nvim_set_hl(0, "VertSplit", { fg = yellow })
-				vim.api.nvim_set_hl(0, "FloatBorder", { fg = yellow })
-
-				print("✓ Разделители установлены: " .. yellow)
-			end, 100)
 
 			-- Простые команды для смены темы
 			vim.api.nvim_create_user_command("KanagawaWave", function()
