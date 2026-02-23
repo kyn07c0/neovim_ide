@@ -11,6 +11,7 @@ return {
 		"nvim-telescope/telescope-ui-select.nvim",
 		"debugloop/telescope-undo.nvim", -- Для undo history
 		"ahmedkhalf/project.nvim", -- Для управления проектами
+		"nvim-treesitter/nvim-treesitter",
 	},
 
 	config = function()
@@ -24,11 +25,15 @@ return {
 		local actions = require("telescope.actions")
 		local themes = require("telescope.themes")
 
+		-- Отключаем treesitter в превью для стабильности
+		local has_ts, ts_utils = pcall(require, "telescope.previewers.utils")
+		local ts_enabled = has_ts and ts_utils.ts_highlighter ~= nil
+
 		telescope.setup({
 			defaults = {
 
 				preview = {
-					treesitter = true,
+					treesitter = false,
 					timeout = 500, -- Таймаут для больших файлов
 					filesize_limit = 1, -- МБ, файлы больше — без preview
 					highlight_limit = 10000, -- Строк, больше — без подсветки

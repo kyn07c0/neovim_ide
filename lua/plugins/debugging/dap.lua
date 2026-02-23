@@ -96,6 +96,19 @@ return {
 				cwd = "${workspaceFolder}",
 				stopOnEntry = false,
 
+				args = function()
+					local args_str = vim.fn.input("Program arguments (space separated): ")
+					-- Разбиваем строку на таблицу, если строка не пустая
+					if args_str and args_str ~= "" then
+						local args = {}
+						for arg in args_str:gmatch("%S+") do
+							table.insert(args, arg)
+						end
+						return args
+					end
+					return {}
+				end,
+
 				showDisassembly = "never", -- варианты: "always", "auto", "never"
 				disassembly = { -- опционально, но полезно
 					syntaxHighlighting = false,
