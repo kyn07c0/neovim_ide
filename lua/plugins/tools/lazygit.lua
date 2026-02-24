@@ -37,5 +37,33 @@ return {
 				require("gitsigns").refresh()
 			end,
 		})
+
+		-- Обновление после операций в lazygit
+		vim.api.nvim_create_autocmd("User", {
+			pattern = "LazyGitUpdate",
+			callback = function()
+				require("gitsigns").refresh()
+
+				-- Обновляем neo-tree
+				vim.defer_fn(function()
+					local ok, manager = pcall(require, "neo-tree.sources.manager")
+					if ok then
+						manager.refresh("filesystem")
+						-- Принудительно обновляем git_status если открыт
+						pcall(manager.refresh, "git_status")
+					end
+				end, 500) -- задержка для завершения git операции
+			end,
+		})
+
+		-- Дополнительно: обновление при возврате фокуса
+		vim.api.nvim_create_autocmd("FocusGained", {
+			callback = function()
+				local ok, manager = pcall(require, "neo-tree.sources.manager")
+				if ok then
+					manager.refresh("filesystem")
+				end
+			end,
+		})
 	end,
 }
