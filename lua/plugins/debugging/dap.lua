@@ -11,10 +11,35 @@ return {
 		"jay-babu/mason-nvim-dap.nvim",
 	},
 	config = function()
+		require("mason-nvim-dap").setup({
+			ensure_installed = { "codelldb" },
+			automatic_installation = true,
+			handlers = {
+				function(config)
+					require("mason-nvim-dap").default_setup(config)
+				end,
+				codelldb = function(config)
+					config.configurations = {
+						{
+							name = "Launch",
+							type = "codelldb",
+							request = "launch",
+							program = function()
+								return vim.fn.input("Path: ", vim.fn.getcwd() .. "/build/main", "file")
+							end,
+							cwd = "${workspaceFolder}",
+							stopOnEntry = false,
+						},
+					}
+					require("mason-nvim-dap").default_setup(config)
+				end,
+			},
+		})
+
 		local dap = require("dap")
 		local dapui = require("dapui")
 
-		-- 1. Иконки отладки (исправлены лишние пробелы в названиях знаков)
+		-- Иконки отладки (исправлены лишние пробелы в названиях знаков)
 		vim.fn.sign_define("DapBreakpoint", {
 			text = "🛑",
 			texthl = "DiagnosticSignError",
@@ -34,18 +59,14 @@ return {
 			numhl = "",
 		})
 
-		-- 2. Настройка dap-ui (Минимализм: только консоль внизу)
+		-- Настройка dap-ui (Минимализм: только консоль внизу)
 		dapui.setup({
 			layouts = {
 				{
 					elements = {
-						{ id = "scopes", size = 1.0 },
+						{ id = "scopes", size = 0.5 },
+						{ id = "repl", size = 0.5 },
 					},
-					size = 0.25,
-					position = "right",
-				},
-				{
-					elements = { "repl" },
 					size = 0.25,
 					position = "bottom",
 				},
@@ -65,22 +86,7 @@ return {
 			dapui.close()
 		end
 
-		-- 4. Адаптеры (Исправлены имена и пути)
-
-		--- C/C++ (codelldb)
-		dap.adapters.codelldb = {
-			type = "server",
-			port = "${port}",
-			executable = {
-				command = "codelldb",
-				args = { "--port", "${port}" },
-			},
-			_adapterSettings = {
-				showDisassembly = "never",
-			},
-		}
-
-		-- Умная функция для пути к исполняемому файлу
+		-- Путь к исполняемому файлу
 		local function get_cpp_program()
 			-- Попытка угадать путь (например, build/main или просто спросить)
 			local default_path = vim.fn.getcwd() .. "/build/main"
@@ -109,33 +115,18 @@ return {
 					return {}
 				end,
 
-				showDisassembly = "never", -- варианты: "always", "auto", "never"
-				disassembly = { -- опционально, но полезно
-					syntaxHighlighting = false,
+				-- Отключаем ассемблер через LLDB команды (выполняются после старта)
+				setupCommands = {
+					{
+						text = "-gdb-set disassembly-flavor intel",
+						description = "Set disassembly flavor to intel",
+						ignoreFailures = true,
+					},
 				},
 			},
 		}
 		dap.configurations.c = dap.configurations.cpp
 
-		--- Python (debugpy) - оставлен как опция
-		dap.adapters.python = {
-			type = "executable",
-			command = "python",
-			args = { "-m", "debugpy.adapter" },
-		}
-		dap.configurations.python = {
-			{
-				type = "python",
-				request = "launch",
-				name = "Launch file",
-				program = "${file}",
-				pythonPath = function()
-					return vim.fn.exepath("python")
-				end,
-			},
-		}
-
-		-- 5. Клавиши (Keymaps)
 		local opts = { noremap = true, silent = true }
 
 		vim.keymap.set("n", "<F5>", function()
@@ -162,5 +153,11 @@ return {
 		vim.keymap.set("n", "<leader>du", function()
 			dapui.toggle()
 		end, vim.tbl_extend("force", opts, { desc = "DAP UI" }))
+
+		-- Команда для просмотра логов
+		vim.keymap.set("n", "<leader>dl", function()
+			local log_path = vim.fn.stdpath("cache") .. "/dap.log"
+			vim.cmd("edit " .. log_path)
+		end, { desc = "DAP Logs" })
 	end,
 }
