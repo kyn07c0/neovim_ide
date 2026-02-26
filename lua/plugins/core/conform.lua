@@ -8,7 +8,7 @@ return {
 		{
 			"<leader>cf",
 			function()
-				require("conform").format({ async = true, lsp_format = "fallback" })
+				require("conform").format({ async = true, lsp_format = "none" })
 			end,
 			mode = { "n", "v" },
 			desc = "Format buffer",
@@ -18,32 +18,24 @@ return {
 	opts = {
 		-- будет использоваться когда не найден ни один formatter для файла
 		default_format_opts = {
-			timeout_ms = 5000,
+			timeout_ms = 3000,
 			async = false,
-			quiet = false,
-			lsp_format = "fallback",
 		},
 
 		-- асинхронное форматирование при сохранении
-		format_on_save = function(bufnr)
+		format_after_save = function(bufnr)
 			-- отключаем для больших файлов
 			local line_count = vim.api.nvim_buf_line_count(bufnr)
-			if line_count > 5000 then
-				return
+			if line_count > 10000 then
+				return nil
 			end
 
 			return {
-				timeout_ms = 2500,
-				lsp_format = "fallback",
-				--async = true,
+				timeout_ms = 1000,
+				lsp_format = "none",
+				async = true,
 			}
 		end,
-
-		-- асинхронное форматирование ПОСЛЕ сохранения (опционально)
-		format_after_save = {
-			timeout_ms = 2500,
-			lsp_format = "fallback",
-		},
 
 		formatters_by_ft = {
 			lua = { "stylua" },
@@ -95,9 +87,9 @@ return {
 		formatters = {
 			clang_format = {
 				-- Используем файл проекта или быстрый fallback
-				prepend_args = { "--fallback-style=LLVM" },
+				args = { "--style=LLVM" },
 				-- Таймаут для больших C++ файлов
-				timeout_ms = 1000,
+				timeout_ms = 2000,
 			},
 			stylua = {
 				timeout_ms = 500,
@@ -111,19 +103,4 @@ return {
 			},
 		},
 	},
-
-	init = function()
-		-- Отключаем LSP форматирование для C/C++
-		vim.api.nvim_create_autocmd("LspAttach", {
-			callback = function(args)
-				local client = vim.lsp.get_client_by_id(args.data.client_id)
-				local ft = vim.bo[args.buf].filetype
-
-				if client and (ft == "cpp" or ft == "c" or ft:match("^h")) then
-					client.server_capabilities.documentFormattingProvider = false
-					print("Отключено LSP форматирование для C/C++")
-				end
-			end,
-		})
-	end,
 }
