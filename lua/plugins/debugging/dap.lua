@@ -15,13 +15,10 @@ return {
 			ensure_installed = { "codelldb" },
 			automatic_installation = true,
 			handlers = {
-				function(config)
-					require("mason-nvim-dap").default_setup(config)
-				end,
 				codelldb = function(config)
 					config.configurations = {
 						{
-							name = "Launch",
+							name = "Launch C++",
 							type = "codelldb",
 							request = "launch",
 							program = function()
@@ -29,6 +26,9 @@ return {
 							end,
 							cwd = "${workspaceFolder}",
 							stopOnEntry = false,
+							initCommands = {
+								"settings set target.x86-disassembly-flavor intel",
+							},
 						},
 					}
 					require("mason-nvim-dap").default_setup(config)
@@ -86,47 +86,6 @@ return {
 			dapui.close()
 		end
 
-		-- Путь к исполняемому файлу
-		local function get_cpp_program()
-			-- Попытка угадать путь (например, build/main или просто спросить)
-			local default_path = vim.fn.getcwd() .. "/build/main"
-			return vim.fn.input("Path to executable: ", default_path, "file")
-		end
-
-		dap.configurations.cpp = {
-			{
-				name = "Launch file (C++)",
-				type = "codelldb",
-				request = "launch",
-				program = get_cpp_program,
-				cwd = "${workspaceFolder}",
-				stopOnEntry = false,
-
-				args = function()
-					local args_str = vim.fn.input("Program arguments (space separated): ")
-					-- Разбиваем строку на таблицу, если строка не пустая
-					if args_str and args_str ~= "" then
-						local args = {}
-						for arg in args_str:gmatch("%S+") do
-							table.insert(args, arg)
-						end
-						return args
-					end
-					return {}
-				end,
-
-				-- Отключаем ассемблер через LLDB команды (выполняются после старта)
-				setupCommands = {
-					{
-						text = "-gdb-set disassembly-flavor intel",
-						description = "Set disassembly flavor to intel",
-						ignoreFailures = true,
-					},
-				},
-			},
-		}
-		dap.configurations.c = dap.configurations.cpp
-
 		local opts = { noremap = true, silent = true }
 
 		vim.keymap.set("n", "<F5>", function()
@@ -153,6 +112,15 @@ return {
 		vim.keymap.set("n", "<leader>du", function()
 			dapui.toggle()
 		end, vim.tbl_extend("force", opts, { desc = "DAP UI" }))
+		-- ✅ ИСПРАВЛЕНО: Выбор конфигурации через dap.run()
+		vim.keymap.set("n", "<leader>dC", function()
+			dap.run()
+		end, vim.tbl_extend("force", opts, { desc = "DAP Select Config" }))
+
+		-- ✅ ИСПРАВЛЕНО: Команда :DapSelectConfig
+		vim.api.nvim_create_user_command("DapSelectConfig", function()
+			dap.run()
+		end, { desc = "Select DAP configuration" })
 
 		-- Команда для просмотра логов
 		vim.keymap.set("n", "<leader>dl", function()
