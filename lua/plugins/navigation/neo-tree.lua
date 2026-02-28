@@ -61,14 +61,13 @@ return {
 
 			filesystem = {
 				filtered_items = {
-					visible = false,
-					hide_dotfiles = true,
-					hide_gitignored = true,
+					visible = true,
+					hide_dotfiles = false,
+					hide_gitignored = false,
 					hide_by_name = {
 						"node_modules",
-						".git",
 					},
-					never_show = { ".git" },
+					never_show = {},
 				},
 
 				follow_current_file = {
