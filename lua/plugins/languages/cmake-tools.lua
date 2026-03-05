@@ -35,7 +35,7 @@ return {
 			},
 
 			-- Окно консоли для сборки и генерации
-			cmake_console_size = 20, -- размер консоли снизу
+			cmake_console_size = 50, -- размер консоли снизу
 			cmake_show_console = "always", -- всегда показывать консоль
 			cmake_close_console_on_success = false, -- не закрывать при успехе
 			cmake_close_console_on_failure = false, -- не закрывать при ошибке
@@ -43,7 +43,7 @@ return {
 			cmake_console_floating = false, -- не плавающее окно
 			cmake_console_interval = 50, -- интервал обновления вывода
 			cmake_build_options = { "--verbose" }, -- подробный вывод
-			cmake_console_height = 20, -- явная высота
+			cmake_console_height = 50, -- явная высота
 			cmake_console_title = "CMake Console", -- заголовок окна
 			cmake_console_autoscroll = true, -- автоматическая прокрутка
 
@@ -59,7 +59,7 @@ return {
 			-- Дополнительные настройки для надежности
 			cmake_variants_message = {
 				short = { show = true },
-				long = { show = true, max_length = 40 },
+				long = { show = true, max_length = 50 },
 			},
 
 			-- Отключаем встроенный запуск программ
