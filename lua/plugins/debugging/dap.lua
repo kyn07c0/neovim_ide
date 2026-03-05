@@ -64,62 +64,104 @@ return {
 			layouts = {
 				{
 					elements = {
-						{ id = "scopes", size = 0.5 },
-						{ id = "repl", size = 0.5 },
+						{
+							id = "scopes",
+							size = 0.6,
+							-- Фильтруем ненужные scope типы
+							filters = {
+								exclude = { "static", "Static" }, -- Скрываем Static
+							},
+						},
+						{ id = "watches", size = 0.2 },
+						{ id = "repl", size = 0.2 },
 					},
-					size = 0.25,
+					size = 0.30,
 					position = "bottom",
 				},
 			},
-			floating = { border = "rounded" },
-			controls = { enabled = true },
+			-- Настройка отображения значений
+			render = {
+				max_value_lines = 100, -- Ограничиваем строки для значений
+				max_type_length = 30, -- Сокращаем длинные типы
+				indent = 1, -- Компактные отступы
+			},
+			-- Настройка иконок для разных типов переменных
+			icons = {
+				expanded = "▾",
+				collapsed = "▸",
+				current_frame = "▸",
+			},
+			floating = {
+				border = "rounded",
+				max_height = 0.8,
+				max_width = 0.8,
+				mappings = {
+					close = { "q", "<Esc>" },
+				},
+			},
+			controls = {
+				enabled = true,
+				element = "repl",
+				icons = {
+					pause = "⏸",
+					play = "▶",
+					step_into = "⏎",
+					step_over = "⏭",
+					step_out = "⏮",
+					step_back = "b",
+					run_last = "▶▶",
+					terminate = "⏹",
+					disconnect = "⏏",
+				},
+			},
+			mappings = {}, -- Пустая таблица, используются умолчания
+			element_mappings = {}, -- Пустая таблица
+			expand_lines = true, -- Значение по умолчанию
+			force_buffers = true, -- Значение по умолчанию
 		})
 
 		-- Автооткрытие/закрытие UI
-		dap.listeners.after.event_initialized["dapui_config"] = function()
+		dap["listeners"].after.event_initialized["dapui_config"] = function()
 			dapui.open()
 		end
-		dap.listeners.before.event_terminated["dapui_config"] = function()
+		dap["listeners"].before.event_terminated["dapui_config"] = function()
 			dapui.close()
 		end
-		dap.listeners.before.event_exited["dapui_config"] = function()
+		dap["listeners"].before.event_exited["dapui_config"] = function()
 			dapui.close()
 		end
 
 		local opts = { noremap = true, silent = true }
 
 		vim.keymap.set("n", "<F5>", function()
-			dap.continue()
+			dap["continue"]()
 		end, vim.tbl_extend("force", opts, { desc = "DAP Continue" }))
 		vim.keymap.set("n", "<F10>", function()
-			dap.step_over()
+			dap["step_over"]()
 		end, vim.tbl_extend("force", opts, { desc = "DAP Step Over" }))
 		vim.keymap.set("n", "<F11>", function()
-			dap.step_into()
+			dap["step_into"]()
 		end, vim.tbl_extend("force", opts, { desc = "DAP Step Into" }))
 		vim.keymap.set("n", "<F12>", function()
-			dap.step_out()
+			dap["step_out"]()
 		end, vim.tbl_extend("force", opts, { desc = "DAP Step Out" }))
 		vim.keymap.set("n", "<leader>db", function()
-			dap.toggle_breakpoint()
+			dap["toggle_breakpoint"]()
 		end, vim.tbl_extend("force", opts, { desc = "DAP Toggle Breakpoint" }))
 		vim.keymap.set("n", "<leader>B", function()
-			dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
+			dap["set_breakpoint"](vim.fn.input("Breakpoint condition: "))
 		end, vim.tbl_extend("force", opts, { desc = "DAP Conditional Breakpoint" }))
 		vim.keymap.set("n", "<leader>dr", function()
-			dap.repl.toggle()
+			dap["repl.toggle"]()
 		end, vim.tbl_extend("force", opts, { desc = "DAP REPL" }))
 		vim.keymap.set("n", "<leader>du", function()
 			dapui.toggle()
 		end, vim.tbl_extend("force", opts, { desc = "DAP UI" }))
-		-- ✅ ИСПРАВЛЕНО: Выбор конфигурации через dap.run()
 		vim.keymap.set("n", "<leader>dC", function()
-			dap.run()
+			dap["run"]()
 		end, vim.tbl_extend("force", opts, { desc = "DAP Select Config" }))
-
-		-- ✅ ИСПРАВЛЕНО: Команда :DapSelectConfig
 		vim.api.nvim_create_user_command("DapSelectConfig", function()
-			dap.run()
+			dap["run"]()
 		end, { desc = "Select DAP configuration" })
 
 		-- Команда для просмотра логов

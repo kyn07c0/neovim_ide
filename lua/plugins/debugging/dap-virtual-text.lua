@@ -14,21 +14,23 @@ return {
 			show_stop_reason = true, -- показывать причину остановки
 			commented = false, -- не показывать в закомментированных строках
 			only_first_definition = true, -- только первое определение переменной
+			all_references = false,
+			clear_on_continue = false,
 			all_frames = false, -- показывать во всех фреймах стека (может быть шумно)
 			virt_text_pos = "eol", -- позиция: "eol" (конец строки), "overlay", "right_align"
 			virt_lines = false, -- экспериментально: показывать в отдельных строках
 			-- Форматирование значений (очень полезно для C++: vector, map и т.д.)
 			display_callback = function(variable)
-				if variable.name == "this" then
-					return variable.value:gsub("^%s*(.-)%s*$", "%1") -- убрать лишние пробелы
+				-- Форматируем длинные значения
+				local value = variable.value
+				if #value > 80 then
+					value = value:sub(1, 77) .. "..."
 				end
-
-				-- Короткие имена для STL
-				if variable.value:match("^std::vector") or variable.value:match("^std::map") then
-					return variable.name .. " = " .. variable.value:sub(1, 50) .. "..."
+				-- Убираем лишние кавычки у строк
+				if value:match('^".*"$') and not variable.type:match("char%*") then
+					value = value:sub(2, -2)
 				end
-
-				return variable.name .. " = " .. variable.value
+				return " = " .. value
 			end,
 
 			-- Цвета (подстраиваются под тему)
