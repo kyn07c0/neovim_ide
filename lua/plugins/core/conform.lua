@@ -32,7 +32,7 @@ return {
 
 			return {
 				timeout_ms = 1000,
-				lsp_format = "none",
+				lsp_format = "never",
 				async = true,
 			}
 		end,
@@ -86,8 +86,6 @@ return {
 		-- Настройки конкретных форматтеров (очень полезно для clang-format)
 		formatters = {
 			clang_format = {
-				-- Используем файл проекта или быстрый fallback
-				args = { "--style=LLVM" },
 				-- Таймаут для больших C++ файлов
 				timeout_ms = 2000,
 			},
