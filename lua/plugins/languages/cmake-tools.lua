@@ -26,6 +26,8 @@ return {
 			cmake_generate_options = {
 				"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
 				"-DCMAKE_BUILD_TYPE=Debug",
+				"-G",
+				"Unix Makefiles",
 			},
 
 			-- Настройки для аргументов запуска
@@ -68,35 +70,39 @@ return {
 			},
 		})
 
+		-- Хранилище для буфера лога (глобальная переменная)
+		local shared_log_bufnr = nil
+
 		-- Создаем единый буфер для всех логов
 		local function get_shared_log_buffer()
-			-- Ищем уже существующий буфер лога
-			for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-				if vim.api.nvim_buf_is_valid(bufnr) then
-					local bufname = vim.api.nvim_buf_get_name(bufnr)
-					-- Ищем по имени
-					if bufname:match("^CMake Shared Log") then
-						return bufnr
-					end
-				end
+			-- Проверяем существующий буфер по переменной
+			if shared_log_bufnr and vim.api.nvim_buf_is_valid(shared_log_bufnr) then
+				return shared_log_bufnr
 			end
 
-			-- Если не нашли, создаем новый буфер
-			local bufnr = vim.api.nvim_create_buf(true, false)
+			-- Создаем новый буфер
+			local bufnr = vim.api.nvim_create_buf(false, true) -- listed=false, scratch=true
 
-			-- Устанавливаем уникальное имя с временной меткой
-			local timestamp = os.date("%Y%m%d_%H%M%S")
-			local bufname = "CMake Shared Log " .. timestamp
+			-- Устанавливаем уникальное имя (буфер + время + случайное число)
+			local bufname = string.format("CMakeSharedLog_%d_%d_%d", bufnr, os.time(), math.random(1000, 9999))
 
-			vim.api.nvim_buf_set_name(bufnr, bufname)
-			vim.api.nvim_set_option_value("buftype", "nofile", { buf = bufnr })
-			vim.api.nvim_set_option_value("swapfile", false, { buf = bufnr })
-			vim.api.nvim_set_option_value("filetype", "log", { buf = bufnr })
-			vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
-			vim.api.nvim_set_option_value("readonly", false, { buf = bufnr })
+			-- Безопасно устанавливаем имя буфера
+			local ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, bufname)
+			if not ok then
+				-- Если имя занято, используем только номер буфера
+				bufname = "CMakeSharedLog_" .. bufnr
+				pcall(vim.api.nvim_buf_set_name, bufnr, bufname)
+			end
+
+			-- Настраиваем буфер
+			vim.api.nvim_buf_set_option(bufnr, "buftype", "nofile")
+			vim.api.nvim_buf_set_option(bufnr, "swapfile", false)
+			vim.api.nvim_buf_set_option(bufnr, "filetype", "log")
+			vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+			vim.api.nvim_buf_set_option(bufnr, "readonly", false)
 
 			-- Добавляем заголовок
-			vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+			local header = {
 				"╔══════════════════════════════════════════╗",
 				"║           CMake Shared Log               ║",
 				"║     Все операции в одном окне            ║",
@@ -104,11 +110,15 @@ return {
 				"",
 				"Создан: " .. os.date("%H:%M:%S"),
 				"",
-			})
+			}
+			vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, header)
 
-			-- Возвращаем режим только для чтения
-			vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
-			vim.api.nvim_set_option_value("readonly", true, { buf = bufnr })
+			-- Устанавливаем режим только для чтения
+			vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+			vim.api.nvim_buf_set_option(bufnr, "readonly", true)
+
+			-- Сохраняем ссылку на буфер
+			shared_log_bufnr = bufnr
 
 			return bufnr
 		end
@@ -119,42 +129,44 @@ return {
 			local bufnr = get_shared_log_buffer()
 
 			if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-				-- Если не удалось получить буфер, просто показываем уведомление
-				if is_error then
-					vim.notify("ОШИБКА: " .. message, vim.log.levels.ERROR)
-				else
-					vim.notify(message, vim.log.levels.INFO)
-				end
+				-- Если не удалось получить буфер, показываем уведомление
+				vim.notify(
+					(is_error and "ОШИБКА: " or "Инфо: ") .. message,
+					is_error and vim.log.levels.ERROR or vim.log.levels.INFO
+				)
 				return
 			end
 
 			local timestamp = os.date("%H:%M:%S")
-			local lines = vim.split(message, "\n")
+			local lines = vim.split(message, "\n", { plain = true })
 
 			-- Безопасно добавляем сообщение
 			local success = pcall(function()
 				-- Временно включаем редактирование
-				vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
-				vim.api.nvim_set_option_value("readonly", false, { buf = bufnr })
+				vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+				vim.api.nvim_buf_set_option(bufnr, "readonly", false)
+
+				-- Получаем текущее количество строк
+				local line_count = vim.api.nvim_buf_line_count(bufnr)
 
 				-- Добавляем разделитель если есть предыдущие сообщения
-				local line_count = vim.api.nvim_buf_line_count(bufnr)
-				if line_count > 8 then -- Учитываем заголовочные строки
+				if line_count > 7 then -- Учитываем заголовочные строки
 					vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
 						"────────────────────────────────────────────",
 					})
 				end
 
 				-- Добавляем основное сообщение
+				local prefix = is_error and "❌ " or "✅ "
 				vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
-					"[" .. timestamp .. "] " .. (is_error and "❌ " or "✅ ") .. lines[1],
+					"[" .. timestamp .. "] " .. prefix .. lines[1],
 				})
 
 				-- Добавляем дополнительные строки
 				if #lines > 1 then
 					for i = 2, #lines do
 						vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
-							"        " .. lines[i],
+							"         " .. lines[i],
 						})
 					end
 				end
@@ -162,25 +174,21 @@ return {
 				-- Прокручиваем вниз в окне если оно открыто
 				for _, winid in ipairs(vim.api.nvim_list_wins()) do
 					if vim.api.nvim_win_get_buf(winid) == bufnr then
-						vim.api.nvim_win_call(winid, function()
-							vim.cmd("normal! G")
-						end)
+						vim.api.nvim_win_set_cursor(winid, { vim.api.nvim_buf_line_count(bufnr), 0 })
 						break
 					end
 				end
 
 				-- Возвращаем режим только для чтения
-				vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
-				vim.api.nvim_set_option_value("readonly", true, { buf = bufnr })
+				vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+				vim.api.nvim_buf_set_option(bufnr, "readonly", true)
 			end)
 
 			if not success then
-				-- Если произошла ошибка при записи в буфер, показываем уведомление
-				if is_error then
-					vim.notify("ОШИБКА записи в лог: " .. message, vim.log.levels.ERROR)
-				else
-					vim.notify("Инфо: " .. message, vim.log.levels.INFO)
-				end
+				vim.notify(
+					(is_error and "ОШИБКА записи в лог: " or "Инфо: ") .. message,
+					is_error and vim.log.levels.ERROR or vim.log.levels.INFO
+				)
 			end
 		end
 
@@ -534,7 +542,20 @@ return {
 		end, { desc = "Close run terminal" })
 
 		-- Выбор цели
-		vim.keymap.set("n", "<leader>ct", "<cmd>CMakeSelectTarget<cr>", { desc = "Select Target" })
+		vim.keymap.set("n", "<leader>ct", function()
+			-- Запрашиваем имя цели у пользователя
+			local target = vim.fn.input("Имя цели сборки (target): ")
+
+			if target ~= "" then
+				-- Устанавливаем цель через API плагина
+				cmake.set_launch_target(target)
+
+				vim.notify("Цель установлена: " .. target, vim.log.levels.INFO)
+				add_to_shared_log("Цель сборки: " .. target, false)
+			else
+				vim.notify("Цель не указана", vim.log.levels.WARN)
+			end
+		end, { desc = "CMake Select Target" })
 
 		-- Просмотр сохраненных аргументов
 		vim.keymap.set("n", "<leader>ca", function()
@@ -596,6 +617,25 @@ return {
 		-- Другие команды
 		vim.keymap.set("n", "<leader>cd", "<cmd>CMakeDebug<cr>", { desc = "CMake Debug" })
 		vim.keymap.set("n", "<leader>cc", "<cmd>CMakeClean<cr>", { desc = "CMake Clean" })
+
+		-- Полная очистка сборки (удаляет build/)
+		vim.keymap.set("n", "<leader>cC", function()
+			local build_dir = vim.fn.getcwd() .. "/build"
+
+			if vim.fn.isdirectory(build_dir) == 1 then
+				local confirm = vim.fn.input("Удалить папку build/? (y/n): ")
+				if confirm == "y" or confirm == "Y" then
+					vim.fn.system("rm -rf " .. build_dir)
+					add_to_shared_log("Папка build/ удалена", false)
+					vim.notify(
+						"Папка build/ удалена. Выполните <leader>cg для генерации",
+						vim.log.levels.INFO
+					)
+				end
+			else
+				vim.notify("Папка build/ не найдена", vim.log.levels.WARN)
+			end
+		end, { desc = "CMake Clean Build Dir" })
 
 		-- Управление общим логом
 		vim.keymap.set("n", "<leader>co", function()
