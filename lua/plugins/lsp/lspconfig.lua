@@ -74,10 +74,10 @@ return {
 				"--malloc-trim", -- Освобождение памяти
 				"--pretty", -- Красивый вывод
 				"--enable-config", -- Разрешить .clangd конфиг
-				-- Оптимизация для больших проектов
 				"--limit-results=50", -- Без ограничений результатов
-				"--limit-references=100", -- ← ограничиваем референсы
-				"--rename-file-limit=50", -- ← ограничиваем переименования
+				"--limit-references=100", -- ограничиваем референсы
+				"--rename-file-limit=50", -- ограничиваем переименования
+				"--enable-config",
 			},
 
 			-- fallback-флаги, если нет compile_commands.json
@@ -87,6 +87,10 @@ return {
 				clangdFileStatus = true,
 				usePlaceholders = true,
 				completeUnimported = true, -- Дополнение из неимпортированных файлов
+				index = {
+					enable = true,
+					standard = "c++20",
+				},
 			},
 
 			-- filetypes остаются те же
@@ -145,6 +149,29 @@ return {
 			update_in_insert = false,
 			severity_sort = true,
 		})
+
+		-- Команда для проверки всех файлов проекта
+		vim.api.nvim_create_user_command("CheckAllFiles", function()
+			local root = vim.fn.getcwd()
+			local files = vim.fn.globpath(root, "**/*.cpp", false, true)
+			vim.list_extend(files, vim.fn.globpath(root, "**/*.h", false, true))
+			vim.list_extend(files, vim.fn.globpath(root, "**/*.hpp", false, true))
+
+			vim.notify("Проверка " .. #files .. " файлов...", vim.log.levels.INFO)
+
+			for i, file in ipairs(files) do
+				vim.cmd("silent! edit " .. file)
+				vim.cmd("silent! write")
+				if i % 10 == 0 then
+					vim.notify("Обработано " .. i .. "/" .. #files .. " файлов", vim.log.levels.INFO)
+				end
+			end
+
+			vim.notify(
+				"Проверка завершена! Ошибки показаны в диагностике",
+				vim.log.levels.INFO
+			)
+		end, { desc = "Проверить все файлы проекта на ошибки" })
 
 		-- Команда LspRestart для Neovim
 		vim.api.nvim_create_user_command("LspRestart", function()

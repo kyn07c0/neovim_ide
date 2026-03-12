@@ -768,5 +768,42 @@ return {
 				end, 500)
 			end,
 		})
+
+		-- Автоматическая индексация всех файлов при открытии проекта
+		vim.api.nvim_create_autocmd("BufReadPost", {
+			pattern = { "*.cpp", "*.h", "*.hpp", "CMakeLists.txt" },
+			group = vim.api.nvim_create_augroup("CppProjectIndex", { clear = true }),
+			once = true, -- Выполнить только 1 раз при открытии проекта
+			callback = function()
+				vim.defer_fn(function()
+					-- Проверяем наличие compile_commands.json
+					local compile_file = vim.fn.getcwd() .. "/compile_commands.json"
+					if vim.fn.filereadable(compile_file) == 1 then
+						vim.notify("Clangd: фоновая индексация проекта...", vim.log.levels.INFO)
+
+						-- Создаём папку для кэша индекса
+						vim.fn.mkdir(vim.fn.getcwd() .. "/.clangd", "p")
+
+						-- Принудительно открываем главный файл для запуска clangd
+						local main_files = { "src/main.cpp", "main.cpp", "src/main.c", "main.c" }
+						for _, file in ipairs(main_files) do
+							if vim.fn.filereadable(file) == 1 then
+								vim.cmd("silent! edit " .. file)
+								vim.notify(
+									"Индексация запущена. Проверьте :LspInfo",
+									vim.log.levels.INFO
+								)
+								break
+							end
+						end
+					else
+						vim.notify(
+							"compile_commands.json не найден! Выполните <leader>cg",
+							vim.log.levels.WARN
+						)
+					end
+				end, 2000)
+			end,
+		})
 	end,
 }
