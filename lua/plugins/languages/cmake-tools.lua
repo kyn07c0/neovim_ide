@@ -731,5 +731,42 @@ return {
 				end, 300)
 			end,
 		})
+
+		-- Авто-генерация при открытии проекта, если файла нет
+		vim.api.nvim_create_autocmd("BufReadPost", {
+			pattern = { "*.cpp", "*.h", "*.hpp", "CMakeLists.txt" },
+			group = vim.api.nvim_create_augroup("CMakeAutoGen", { clear = true }),
+			callback = function()
+				local root = vim.fn.getcwd()
+				local compile_file = root .. "/compile_commands.json"
+
+				-- Если файла нет, запускаем генерацию тихо
+				if vim.fn.filereadable(compile_file) == 0 then
+					vim.defer_fn(function()
+						vim.notify(
+							"compile_commands.json не найден. Запуск CMake...",
+							vim.log.levels.INFO
+						)
+						require("cmake-tools").generate()
+					end, 1000)
+				end
+			end,
+		})
+
+		vim.api.nvim_create_autocmd("BufWritePost", {
+			pattern = "CMakeLists.txt",
+			callback = function()
+				vim.defer_fn(function()
+					local confirm = vim.fn.confirm(
+						"CMakeLists.txt изменен. Обновить compile_commands.json?",
+						"&Да\n&Нет",
+						1
+					)
+					if confirm == 1 then
+						require("cmake-tools").generate()
+					end
+				end, 500)
+			end,
+		})
 	end,
 }

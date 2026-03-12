@@ -82,7 +82,7 @@ return {
 
 			-- fallback-флаги, если нет compile_commands.json
 			init_options = {
-				compilationDatabasePath = "build", -- путь к compile_commands.json
+				compilationDatabasePath = ".", -- путь к compile_commands.json
 				fallbackFlags = { "-std=c++20" },
 				clangdFileStatus = true,
 				usePlaceholders = true,
@@ -145,5 +145,20 @@ return {
 			update_in_insert = false,
 			severity_sort = true,
 		})
+
+		-- Команда LspRestart для Neovim
+		vim.api.nvim_create_user_command("LspRestart", function()
+			local clients = vim.lsp.get_active_clients()
+			if #clients == 0 then
+				vim.notify("Нет активных LSP клиентов", vim.log.levels.WARN)
+				return
+			end
+			for _, client in ipairs(clients) do
+				vim.lsp.stop_client(client.id, true)
+			end
+			vim.notify("LSP клиенты перезапущены", vim.log.levels.INFO)
+			-- Переоткрываем текущий буфер для повторного подключения
+			vim.cmd("edit " .. vim.fn.expand("%:p"))
+		end, { desc = "Перезапустить LSP серверы" })
 	end,
 }
