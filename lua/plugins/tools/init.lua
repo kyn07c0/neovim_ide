@@ -15,4 +15,6 @@ return {
 	require("plugins.tools.startuptime"),
 	-- AI
 	require("plugins.tools.codecompanion"),
+	-- Отображение Markdown
+	require("plugins.tools.markdown"),
 }

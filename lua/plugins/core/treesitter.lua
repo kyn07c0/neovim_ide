@@ -44,14 +44,12 @@ return {
 			-- Документация
 			"markdown",
 			"markdown_inline",
-			"latex",
 
 			-- Другие полезные языки
 			"rust",
 			"go",
 			"java",
 			"kotlin",
-			"swift",
 			"dockerfile",
 			"gitignore",
 			"gitcommit",
