@@ -10,31 +10,65 @@ return {
 
 	config = function()
 		local cmake = require("cmake-tools")
-		local M = {}
-		M.runner_args = {} -- Хранилище для аргументов
+		local osys = require("cmake-tools.osys")
 
-		-- Глобальные переменные для общего терминала
-		local shared_terminal_bufnr = nil
-		local shared_terminal_winid = nil
-		M.run_terminal_bufnr = nil -- ID буфера терминала для запуска (для обратной совместимости)
-		M.run_terminal_winid = nil -- ID окна терминала для запуска (для обратной совместимости)
+		-- Хранилище состояния
+		local M = {
+			current_preset = nil,
+			current_build_type = "Debug",
+			runner_args = {},
+		}
+
+		-- Определение доступных пресетов
+		local function get_presets()
+			local presets = { "debug", "release", "profile", "asan", "tsan" }
+			local available = {}
+
+			for _, preset in ipairs(presets) do
+				-- Проверяем существование папки сборки как признак использования
+				local build_dir = vim.fn.getcwd() .. "/build/" .. preset
+				table.insert(available, {
+					name = preset,
+					active = vim.fn.isdirectory(build_dir) == 1,
+				})
+			end
+
+			return available
+		end
+
+		-- Форматирование имени пресета для отображения
+		local function format_preset_name(preset)
+			local icons = {
+				debug = "🔧",
+				release = "⚡",
+				profile = "📊",
+				asan = "🛡️",
+				tsan = "🔒",
+				default = "📦",
+			}
+			local names = {
+				debug = "Debug + Tests + Sanitizers",
+				release = "Release Optimized",
+				profile = "Profile Build",
+				asan = "Address Sanitizer",
+				tsan = "Thread Sanitizer",
+				default = "Default",
+			}
+
+			local icon = icons[preset] or icons.default
+			local name = names[preset] or preset
+			local active = M.current_preset == preset and " ✓" or ""
+
+			return string.format("%s %s%s", icon, name, active)
+		end
 
 		-- Настраиваем плагин так, чтобы он не создавал свои терминалы
 		cmake.setup({
 			cmake_command = "cmake",
-			cmake_build_directory = "build", -- папка для сборки
-			cmake_generate_options = {
-				"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-				"-DCMAKE_BUILD_TYPE=Debug",
-				"-G",
-				"Unix Makefiles",
-			},
 
-			-- Настройки для аргументов запуска
-			cmake_runner_args = {
-				default_args = {},
-				by_target = {},
-			},
+			-- Используем CMakePresets.json вместо ручной настройки
+			cmake_use_preset = true,
+			cmake_preset = "debug", -- пресет по умолчанию
 
 			-- Окно консоли для сборки и генерации
 			cmake_console_size = 50, -- размер консоли снизу
@@ -56,6 +90,7 @@ return {
 				request = "launch",
 				stopOnEntry = false,
 				runInTerminal = true,
+				console = "integratedTerminal",
 			},
 
 			-- Дополнительные настройки для надежности
@@ -70,739 +105,295 @@ return {
 			},
 		})
 
-		-- Хранилище для буфера лога (глобальная переменная)
-		local shared_log_bufnr = nil
+		-- ==================== КОМАНДЫ ВЫБОРА ПРОФИЛЯ ====================
 
-		-- Создаем единый буфер для всех логов
-		local function get_shared_log_buffer()
-			-- Проверяем существующий буфер по переменной
-			if shared_log_bufnr and vim.api.nvim_buf_is_valid(shared_log_bufnr) then
-				return shared_log_bufnr
+		-- Выбор CMake Preset
+		vim.keymap.set("n", "<leader>cp", function()
+			local presets = get_presets()
+			local options = {}
+
+			for _, p in ipairs(presets) do
+				table.insert(options, format_preset_name(p.name))
 			end
 
-			-- Создаем новый буфер
-			local bufnr = vim.api.nvim_create_buf(false, true) -- listed=false, scratch=true
-
-			-- Устанавливаем уникальное имя (буфер + время + случайное число)
-			local bufname = string.format("CMakeSharedLog_%d_%d_%d", bufnr, os.time(), math.random(1000, 9999))
-
-			-- Безопасно устанавливаем имя буфера
-			local ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, bufname)
-			if not ok then
-				-- Если имя занято, используем только номер буфера
-				bufname = "CMakeSharedLog_" .. bufnr
-				pcall(vim.api.nvim_buf_set_name, bufnr, bufname)
-			end
-
-			-- Настраиваем буфер
-			vim.api.nvim_buf_set_option(bufnr, "buftype", "nofile")
-			vim.api.nvim_buf_set_option(bufnr, "swapfile", false)
-			vim.api.nvim_buf_set_option(bufnr, "filetype", "log")
-			vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-			vim.api.nvim_buf_set_option(bufnr, "readonly", false)
-
-			-- Добавляем заголовок
-			local header = {
-				"╔══════════════════════════════════════════╗",
-				"║           CMake Shared Log               ║",
-				"║     Все операции в одном окне            ║",
-				"╚══════════════════════════════════════════╝",
-				"",
-				"Создан: " .. os.date("%H:%M:%S"),
-				"",
-			}
-			vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, header)
-
-			-- Устанавливаем режим только для чтения
-			vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
-			vim.api.nvim_buf_set_option(bufnr, "readonly", true)
-
-			-- Сохраняем ссылку на буфер
-			shared_log_bufnr = bufnr
-
-			return bufnr
-		end
-
-		-- Функция для добавления сообщения в общий лог
-		local function add_to_shared_log(message, is_error)
-			-- Получаем или создаем буфер
-			local bufnr = get_shared_log_buffer()
-
-			if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-				-- Если не удалось получить буфер, показываем уведомление
-				vim.notify(
-					(is_error and "ОШИБКА: " or "Инфо: ") .. message,
-					is_error and vim.log.levels.ERROR or vim.log.levels.INFO
-				)
-				return
-			end
-
-			local timestamp = os.date("%H:%M:%S")
-			local lines = vim.split(message, "\n", { plain = true })
-
-			-- Безопасно добавляем сообщение
-			local success = pcall(function()
-				-- Временно включаем редактирование
-				vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-				vim.api.nvim_buf_set_option(bufnr, "readonly", false)
-
-				-- Получаем текущее количество строк
-				local line_count = vim.api.nvim_buf_line_count(bufnr)
-
-				-- Добавляем разделитель если есть предыдущие сообщения
-				if line_count > 7 then -- Учитываем заголовочные строки
-					vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
-						"────────────────────────────────────────────",
-					})
-				end
-
-				-- Добавляем основное сообщение
-				local prefix = is_error and "❌ " or "✅ "
-				vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
-					"[" .. timestamp .. "] " .. prefix .. lines[1],
-				})
-
-				-- Добавляем дополнительные строки
-				if #lines > 1 then
-					for i = 2, #lines do
-						vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, {
-							"         " .. lines[i],
-						})
-					end
-				end
-
-				-- Прокручиваем вниз в окне если оно открыто
-				for _, winid in ipairs(vim.api.nvim_list_wins()) do
-					if vim.api.nvim_win_get_buf(winid) == bufnr then
-						vim.api.nvim_win_set_cursor(winid, { vim.api.nvim_buf_line_count(bufnr), 0 })
-						break
-					end
-				end
-
-				-- Возвращаем режим только для чтения
-				vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
-				vim.api.nvim_buf_set_option(bufnr, "readonly", true)
-			end)
-
-			if not success then
-				vim.notify(
-					(is_error and "ОШИБКА записи в лог: " or "Инфо: ") .. message,
-					is_error and vim.log.levels.ERROR or vim.log.levels.INFO
-				)
-			end
-		end
-
-		-- Функция для поиска исполняемого файла
-		local function find_executable(target)
-			local possible_paths = {
-				"./build/" .. target,
-				"./build/Debug/" .. target,
-				"./build/Release/" .. target,
-				"./build/bin/" .. target,
-				"./build/Debug/bin/" .. target,
-				"./build/Release/bin/" .. target,
-				target, -- Возможно уже полный путь
-			}
-
-			for _, path in ipairs(possible_paths) do
-				if vim.fn.executable(path) == 1 then
-					return path
-				end
-				-- Проверяем существование файла (не обязательно исполняемого для Windows)
-				if vim.fn.filereadable(path) == 1 then
-					return path
-				end
-			end
-
-			-- Если не нашли, используем find
-			local handle = io.popen("find build -name '" .. target .. "' -type f 2>/dev/null | head -1")
-			if handle then
-				local found = handle:read("*a"):gsub("%s+$", "")
-				handle:close()
-				if found ~= "" then
-					return found
-				end
-			end
-
-			return nil
-		end
-
-		-- Функция для поиска существующего окна общего терминала
-		local function find_shared_terminal_window()
-			-- Сначала проверяем наш сохраненный терминал
-			if shared_terminal_winid and vim.api.nvim_win_is_valid(shared_terminal_winid) then
-				local bufnr = vim.api.nvim_win_get_buf(shared_terminal_winid)
-				local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
-				if buftype == "terminal" then
-					return shared_terminal_winid, bufnr
-				end
-			end
-
-			-- Проверяем сохраненный ID окна из M (для обратной совместимости)
-			if M.run_terminal_winid and vim.api.nvim_win_is_valid(M.run_terminal_winid) then
-				local bufnr = vim.api.nvim_win_get_buf(M.run_terminal_winid)
-				local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
-				if buftype == "terminal" then
-					-- Обновляем наши глобальные переменные
-					shared_terminal_winid = M.run_terminal_winid
-					shared_terminal_bufnr = M.run_terminal_bufnr
-					return shared_terminal_winid, bufnr
-				end
-			end
-
-			-- Ищем среди всех окон
-			for _, winid in ipairs(vim.api.nvim_list_wins()) do
-				local bufnr = vim.api.nvim_win_get_buf(winid)
-				local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
-
-				if buftype == "terminal" then
-					-- Проверяем, не является ли это окном консоли CMake
-					local bufname = vim.api.nvim_buf_get_name(bufnr)
-					if not bufname:match("cmake_tools") then
-						-- Сохраняем найденное окно
-						shared_terminal_winid = winid
-						shared_terminal_bufnr = bufnr
-						M.run_terminal_winid = winid
-						M.run_terminal_bufnr = bufnr
-						return winid, bufnr
-					end
-				end
-			end
-
-			return nil, nil
-		end
-
-		-- Функция для закрытия общего терминала
-		local function close_shared_terminal()
-			local winid, bufnr = find_shared_terminal_window()
-			if winid then
-				-- Используем vim.schedule для асинхронного закрытия
-				vim.schedule(function()
-					if vim.api.nvim_win_is_valid(winid) then
-						-- Останавливаем процесс в терминале
-						local job_id = bufnr and vim.api.nvim_buf_get_var(bufnr, "terminal_job_id")
-						if job_id then
-							pcall(vim.fn.chansend, job_id, "\003") -- Ctrl+C
-							vim.fn.wait(100, function() end)
-						end
-
-						-- Закрываем окно
-						vim.api.nvim_win_close(winid, true)
-					end
-
-					-- Закрываем буфер
-					if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
-						vim.api.nvim_buf_delete(bufnr, { force = true })
-					end
-
-					-- Очищаем все переменные
-					shared_terminal_winid = nil
-					shared_terminal_bufnr = nil
-					M.run_terminal_winid = nil
-					M.run_terminal_bufnr = nil
-				end)
-			end
-		end
-
-		-- Функция для запуска программы в общем терминале
-		local function run_in_shared_terminal(cmd, target, args)
-			-- Закрываем старый терминал если он есть
-			close_shared_terminal()
-
-			-- Ждем завершения закрытия окон
-			vim.fn.wait(300, function() end)
-
-			-- Проверяем, что нет операций закрытия окон
-			local safe_to_proceed = true
-			for i = 1, 10 do -- Проверяем несколько раз
-				local windows = vim.api.nvim_list_wins()
-				for _, winid in ipairs(windows) do
-					if not vim.api.nvim_win_is_valid(winid) then
-						safe_to_proceed = false
-						break
-					end
-				end
-				if not safe_to_proceed then
-					vim.fn.wait(50, function() end)
-				else
-					break
-				end
-			end
-
-			if not safe_to_proceed then
-				vim.notify(
-					"Не удалось создать терминал: система окон занята",
-					vim.log.levels.ERROR
-				)
-				return
-			end
-
-			-- Сохраняем текущее окно перед любыми операциями
-			local current_win = vim.api.nvim_get_current_win()
-			-- Проверяем, что окно все еще валидно
-			if not vim.api.nvim_win_is_valid(current_win) then
-				current_win = -1
-				for _, winid in ipairs(vim.api.nvim_list_wins()) do
-					if vim.api.nvim_win_is_valid(winid) then
-						current_win = winid
-						break
-					end
-				end
-			end
-
-			if current_win == -1 then
-				vim.notify("Нет доступных окон", vim.log.levels.ERROR)
-				return
-			end
-
-			-- Устанавливаем текущее окно
-			vim.api.nvim_set_current_win(current_win)
-
-			-- Ждем еще немного
-			vim.fn.wait(100, function() end)
-
-			-- Используем асинхронное создание терминала через vim.schedule
-			vim.schedule(function()
-				-- Еще одна проверка
-				if not vim.api.nvim_win_is_valid(current_win) then
-					vim.notify(
-						"Окно стало невалидным во время создания терминала",
-						vim.log.levels.ERROR
-					)
+			vim.ui.select(options, {
+				prompt = "Выберите профиль сборки:",
+				format_item = function(item)
+					return item
+				end,
+			}, function(choice, idx)
+				if not choice then
 					return
 				end
 
-				-- Создаем новое окно терминала
-				vim.cmd("split")
-				vim.fn.wait(50, function() end)
-				vim.cmd("terminal " .. cmd)
-				vim.cmd("startinsert")
+				local selected = presets[idx].name
+				M.current_preset = selected
 
-				-- Сохраняем ID окна и буфера
-				shared_terminal_winid = vim.api.nvim_get_current_win()
-				shared_terminal_bufnr = vim.api.nvim_get_current_buf()
-				M.run_terminal_winid = shared_terminal_winid
-				M.run_terminal_bufnr = shared_terminal_bufnr
-
-				-- Устанавливаем размер окна
-				vim.api.nvim_win_set_height(shared_terminal_winid, 20)
-
-				-- Добавляем заголовок окна
-				local winbar_text = "▶ " .. target
-				if args and args ~= "" then
-					winbar_text = winbar_text .. " " .. args
-				end
-				vim.api.nvim_set_option_value("winbar", winbar_text, { win = shared_terminal_winid })
-
-				-- Автоматическое удаление при закрытии окна
-				vim.api.nvim_create_autocmd("WinClosed", {
-					buffer = shared_terminal_bufnr,
-					once = true,
-					callback = function()
-						shared_terminal_winid = nil
-						shared_terminal_bufnr = nil
-						M.run_terminal_winid = nil
-						M.run_terminal_bufnr = nil
-					end,
-				})
-
-				-- Возвращаем фокус в предыдущее окно
-				if vim.api.nvim_win_is_valid(current_win) then
-					vim.api.nvim_set_current_win(current_win)
-				end
-			end)
-
-			return shared_terminal_winid, shared_terminal_bufnr
-		end
-
-		-- Горячие клавиши с общим логом
-		vim.keymap.set("n", "<leader>cg", function()
-			add_to_shared_log("Генерация CMake...", false)
-			local success, result = pcall(cmake.generate, {})
-			if success then
-				add_to_shared_log("Генерация CMake завершена", false)
-				vim.notify("Генерация CMake завершена", vim.log.levels.INFO)
-			else
-				add_to_shared_log("Ошибка генерации CMake: " .. tostring(result), true)
-				vim.notify("Ошибка генерации CMake", vim.log.levels.ERROR)
-			end
-		end, { desc = "CMake Generate" })
-
-		vim.keymap.set("n", "<leader>cb", function()
-			add_to_shared_log("Сборка проекта...", false)
-			local success, result = pcall(cmake.build, {})
-			if success then
-				add_to_shared_log("Сборка проекта завершена", false)
-				vim.notify("Сборка проекта завершена", vim.log.levels.INFO)
-			else
-				add_to_shared_log("Ошибка сборки проекта: " .. tostring(result), true)
-				vim.notify("Ошибка сборки проекта", vim.log.levels.ERROR)
-			end
-		end, { desc = "CMake Build" })
-
-		-- Запуск без аргументов (использует общий терминал)
-		vim.keymap.set("n", "<leader>cr", function()
-			-- Получаем текущую цель
-			local target = nil
-			local status_ok, result = pcall(function()
-				return cmake.get_launch_target()
-			end)
-
-			if status_ok and result then
-				target = result
-			end
-
-			if not target or target == "" then
-				-- Если не можем получить цель, запросим у пользователя
-				target = vim.fn.input("Имя исполняемого файла (из build/): ", "")
-				if target == "" then
-					vim.notify("Цель не указана", vim.log.levels.WARN)
-					return
-				end
-			end
-
-			-- Ищем исполняемый файл
-			local exe_path = find_executable(target)
-			if not exe_path then
-				vim.notify("Исполняемый файл не найден: " .. target, vim.log.levels.ERROR)
-				add_to_shared_log("ОШИБКА: Исполняемый файл не найден: " .. target, true)
-				return
-			end
-
-			-- Строим команду для запуска
-			local cmd = exe_path
-
-			add_to_shared_log("Запуск программы: " .. cmd, false)
-
-			-- Запускаем в общем терминале
-			run_in_shared_terminal(cmd, target, nil)
-
-			vim.notify("Запущено: " .. target, vim.log.levels.INFO)
-		end, { desc = "CMake Run" })
-
-		-- Запуск с аргументами (использует тот же общий терминал)
-		vim.keymap.set("n", "<leader>cR", function()
-			-- Получаем текущую цель
-			local target = nil
-			local status_ok, result = pcall(function()
-				return cmake.get_launch_target()
-			end)
-
-			if status_ok and result then
-				target = result
-			end
-
-			if not target or target == "" then
-				-- Если не можем получить цель, запросим у пользователя
-				target = vim.fn.input("Имя исполняемого файла (из build/): ", "")
-				if target == "" then
-					vim.notify("Цель не указана", vim.log.levels.WARN)
-					return
-				end
-			end
-
-			-- Запрашиваем аргументы (используем сохраненные если есть)
-			local last_args = M.runner_args[target] or ""
-			local args_input = vim.fn.input("Аргументы для " .. target .. ": ", last_args)
-
-			-- Сохраняем аргументы
-			if args_input ~= "" then
-				M.runner_args[target] = args_input
-			end
-
-			-- Ищем исполняемый файл
-			local exe_path = find_executable(target)
-			if not exe_path then
-				vim.notify("Исполняемый файл не найден: " .. target, vim.log.levels.ERROR)
-				add_to_shared_log("ОШИБКА: Исполняемый файл не найден: " .. target, true)
-				return
-			end
-
-			-- Строим команду для запуска
-			local cmd = exe_path
-			if args_input ~= "" then
-				cmd = cmd .. " " .. args_input
-			end
-
-			add_to_shared_log("Запуск программы: " .. cmd, false)
-
-			-- Запускаем в общем терминале
-			run_in_shared_terminal(cmd, target, args_input)
-
-			vim.notify(
-				"Запущено: " .. target .. (args_input ~= "" and " с аргументами" or ""),
-				vim.log.levels.INFO
-			)
-		end, { desc = "CMake Run with args" })
-
-		-- Закрытие терминала
-		vim.keymap.set("n", "<leader>cz", function()
-			close_shared_terminal()
-			vim.notify("Терминал запуска закрыт", vim.log.levels.INFO)
-		end, { desc = "Close run terminal" })
-
-		-- Выбор цели
-		vim.keymap.set("n", "<leader>ct", function()
-			-- Запрашиваем имя цели у пользователя
-			local target = vim.fn.input("Имя цели сборки (target): ")
-
-			if target ~= "" then
-				-- Устанавливаем цель через API плагина
-				cmake.set_launch_target(target)
-
-				vim.notify("Цель установлена: " .. target, vim.log.levels.INFO)
-				add_to_shared_log("Цель сборки: " .. target, false)
-			else
-				vim.notify("Цель не указана", vim.log.levels.WARN)
-			end
-		end, { desc = "CMake Select Target" })
-
-		-- Просмотр сохраненных аргументов
-		vim.keymap.set("n", "<leader>ca", function()
-			local has_args = false
-			local msg = "Сохраненные аргументы:\n"
-
-			for target, args in pairs(M.runner_args) do
-				if args ~= "" then
-					has_args = true
-					msg = msg .. "  " .. target .. ": " .. args .. "\n"
-				end
-			end
-
-			if has_args then
-				vim.notify(msg, vim.log.levels.INFO)
-			else
-				vim.notify("Нет сохраненных аргументов", vim.log.levels.INFO)
-			end
-		end, { desc = "Show saved args" })
-
-		-- Сохранение аргументов в файл проекта
-		vim.keymap.set("n", "<leader>cs", function()
-			local config_file = vim.fn.getcwd() .. "/.cmake-runner-args"
-			local lines = {}
-
-			for target, args in pairs(M.runner_args) do
-				if args ~= "" then
-					table.insert(lines, target .. ":" .. args)
-				end
-			end
-
-			if #lines > 0 then
-				vim.fn.writefile(lines, config_file)
-				vim.notify("Аргументы сохранены в " .. config_file, vim.log.levels.INFO)
-			else
-				vim.notify("Нет аргументов для сохранения", vim.log.levels.WARN)
-			end
-		end, { desc = "Save args to file" })
-
-		-- Автозагрузка аргументов из файла
-		vim.api.nvim_create_autocmd("VimEnter", {
-			callback = function()
-				local config_file = vim.fn.getcwd() .. "/.cmake-runner-args"
-				if vim.fn.filereadable(config_file) == 1 then
-					local lines = vim.fn.readfile(config_file)
-
-					for _, line in ipairs(lines) do
-						local target, args = string.match(line, "([^:]+):(.+)")
-						if target and args then
-							M.runner_args[target] = args
-						end
-					end
-
-					vim.notify("Загружены сохраненные аргументы", vim.log.levels.INFO)
-				end
-			end,
-		})
-
-		-- Другие команды
-		vim.keymap.set("n", "<leader>cd", "<cmd>CMakeDebug<cr>", { desc = "CMake Debug" })
-		vim.keymap.set("n", "<leader>cc", "<cmd>CMakeClean<cr>", { desc = "CMake Clean" })
-
-		-- Полная очистка сборки (удаляет build/)
-		vim.keymap.set("n", "<leader>cC", function()
-			local build_dir = vim.fn.getcwd() .. "/build"
-
-			if vim.fn.isdirectory(build_dir) == 1 then
-				local confirm = vim.fn.input("Удалить папку build/? (y/n): ")
-				if confirm == "y" or confirm == "Y" then
-					vim.fn.system("rm -rf " .. build_dir)
-					add_to_shared_log("Папка build/ удалена", false)
-					vim.notify(
-						"Папка build/ удалена. Выполните <leader>cg для генерации",
-						vim.log.levels.INFO
-					)
-				end
-			else
-				vim.notify("Папка build/ не найдена", vim.log.levels.WARN)
-			end
-		end, { desc = "CMake Clean Build Dir" })
-
-		-- Управление общим логом
-		vim.keymap.set("n", "<leader>co", function()
-			-- Создаем или получаем буфер лога
-			local bufnr = get_shared_log_buffer()
-
-			if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-				vim.notify("Не удалось создать буфер лога", vim.log.levels.ERROR)
-				return
-			end
-
-			-- Проверяем, есть ли уже окно с этим буфером
-			local existing_winid = nil
-			for _, winid in ipairs(vim.api.nvim_list_wins()) do
-				if vim.api.nvim_win_get_buf(winid) == bufnr then
-					existing_winid = winid
-					break
-				end
-			end
-
-			if existing_winid then
-				-- Если окно уже есть, переключаемся на него
-				vim.api.nvim_set_current_win(existing_winid)
-			else
-				-- Иначе создаем новое окно
-				local current_win = vim.api.nvim_get_current_win()
-				vim.cmd("botright split")
-				vim.api.nvim_win_set_buf(0, bufnr)
-				vim.api.nvim_win_set_height(0, 20)
-
-				-- Возвращаем фокус на предыдущее окно если нужно
-				if vim.api.nvim_win_is_valid(current_win) then
-					vim.api.nvim_set_current_win(current_win)
-				end
-			end
-		end, { desc = "Open shared log" })
-
-		vim.keymap.set("n", "<leader>cx", function()
-			-- Закрываем окно общего лога
-			local bufnr = get_shared_log_buffer()
-
-			for _, winid in ipairs(vim.api.nvim_list_wins()) do
-				if vim.api.nvim_win_get_buf(winid) == bufnr then
-					vim.api.nvim_win_close(winid, true)
-					break
-				end
-			end
-		end, { desc = "Close shared log" })
-
-		vim.keymap.set("n", "<leader>cl", function()
-			local bufnr = get_shared_log_buffer()
-
-			if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-				return
-			end
-
-			-- Безопасно очищаем буфер
-			pcall(function()
-				vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
-				vim.api.nvim_set_option_value("readonly", false, { buf = bufnr })
-
-				vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
-					"╔══════════════════════════════════════════╗",
-					"║           CMake Shared Log               ║",
-					"║     Все операции в одном окне            ║",
-					"╚══════════════════════════════════════════╝",
-					"",
-					"Лог очищен " .. os.date("%H:%M:%S"),
-					"",
-				})
-
-				vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
-				vim.api.nvim_set_option_value("readonly", true, { buf = bufnr })
-			end)
-		end, { desc = "Clear shared log" })
-
-		-- Автоматически обновлять compile_commands.json
-		vim.api.nvim_create_autocmd("User", {
-			pattern = { "CMakeBuildFinished", "CMakeBuildFailed", "CMakeCleanFinished" },
-			callback = function()
+				-- Обновляем compile_commands.json
 				vim.defer_fn(function()
 					local root = vim.fn.getcwd()
-					local source = root .. "/build/compile_commands.json"
+					local source = root .. "/build/" .. selected .. "/compile_commands.json"
 					local target = root .. "/compile_commands.json"
 
 					if vim.fn.filereadable(source) == 1 then
-						os.execute("cp " .. source .. " " .. target)
-						vim.notify("compile_commands.json обновлен", vim.log.levels.INFO)
+						os.execute("ln -sf " .. source .. " " .. target)
 					end
 
-					-- Добавляем сообщение в общий лог
-					add_to_shared_log("Сборка завершена, compile_commands.json обновлен", false)
-				end, 300)
-			end,
-		})
+					-- Перезапускаем LSP для новых флагов компиляции
+					vim.cmd("LspRestart")
+				end, 500)
 
-		-- Авто-генерация при открытии проекта, если файла нет
+				vim.notify("Профиль: " .. selected, vim.log.levels.INFO)
+			end)
+		end, { desc = "CMake: Select Preset" })
+
+		-- Быстрое переключение Debug ↔ Release
+		vim.keymap.set("n", "<leader>c<space>", function()
+			local new_preset = M.current_preset == "debug" and "release" or "debug"
+			M.current_preset = new_preset
+
+			vim.notify("Переключено на: " .. new_preset, vim.log.levels.INFO)
+
+			-- Предлагаем пересобрать
+			vim.ui.select({ "Да", "Нет" }, {
+				prompt = "Перегенерировать CMake для " .. new_preset .. "?",
+			}, function(choice)
+				if choice == "Да" then
+					cmake.generate({ preset = new_preset })
+				end
+			end)
+		end, { desc = "CMake: Toggle Debug/Release" })
+
+		-- ==================== СБОРКА ====================
+
+		-- Сборка с текущим пресетом
+		vim.keymap.set("n", "<leader>cb", function()
+			local preset = M.current_preset or "debug"
+			cmake.build({ preset = preset })
+		end, { desc = "CMake: Build (current preset)" })
+
+		-- Чистая сборка (rebuild)
+		vim.keymap.set("n", "<leader>cB", function()
+			local preset = M.current_preset or "debug"
+
+			vim.ui.select({ "Да", "Нет" }, {
+				prompt = "Clean + Build для " .. preset .. "?",
+			}, function(choice)
+				if choice == "Да" then
+					cmake.clean()
+					vim.defer_fn(function()
+						cmake.build({ preset = preset })
+					end, 500)
+				end
+			end)
+		end, { desc = "CMake: Clean Build" })
+
+		-- ==================== ЗАПУСК И ОТЛАДКА ====================
+
+		-- Запуск с выбором цели
+		vim.keymap.set("n", "<leader>cr", function()
+			-- Получаем список исполняемых целей
+			local targets = cmake.get_launch_targets() or {}
+
+			if #targets == 0 then
+				vim.notify(
+					"Нет исполняемых целей. Сначала соберите проект.",
+					vim.log.levels.WARN
+				)
+				return
+			end
+
+			vim.ui.select(targets, {
+				prompt = "Выберите цель для запуска:",
+			}, function(target)
+				if not target then
+					return
+				end
+
+				-- Сохраняем аргументы для этой цели
+				local args = M.runner_args[target] or ""
+
+				if args ~= "" then
+					vim.ui.select({
+						"С аргументами: " .. args,
+						"Без аргументов",
+						"Изменить аргументы",
+					}, {
+						prompt = "Аргументы для " .. target .. ":",
+					}, function(choice, idx)
+						if idx == 1 then
+							cmake.launch({ target = target, args = vim.split(args, " ") })
+						elseif idx == 2 then
+							cmake.launch({ target = target })
+						elseif idx == 3 then
+							local new_args = vim.fn.input("Аргументы: ", args)
+							M.runner_args[target] = new_args
+							cmake.launch({ target = target, args = vim.split(new_args, " ") })
+						end
+					end)
+				else
+					cmake.launch({ target = target })
+				end
+			end)
+		end, { desc = "CMake: Run Target" })
+
+		-- Запуск с аргументами
+		vim.keymap.set("n", "<leader>cR", function()
+			local target = cmake.get_launch_target()
+			if not target then
+				vim.notify("Не выбрана цель запуска", vim.log.levels.WARN)
+				return
+			end
+
+			local args = vim.fn.input("Аргументы для " .. target .. ": ", M.runner_args[target] or "")
+
+			M.runner_args[target] = args
+			cmake.launch({
+				target = target,
+				args = args ~= "" and vim.split(args, " ") or nil,
+			})
+		end, { desc = "CMake: Run with Args" })
+
+		-- Отладка текущей цели
+		vim.keymap.set("n", "<leader>cd", function()
+			cmake.debug()
+		end, { desc = "CMake: Debug" })
+
+		-- ==================== УПРАВЛЕНИЕ ====================
+
+		-- Генерация (configure)
+		vim.keymap.set("n", "<leader>cg", function()
+			cmake.generate({ preset = M.current_preset })
+		end, { desc = "CMake: Generate" })
+
+		-- Чистка
+		vim.keymap.set("n", "<leader>cc", function()
+			cmake.clean()
+		end, { desc = "CMake: Clean" })
+
+		-- Полная очистка (удаление build/)
+		vim.keymap.set("n", "<leader>cC", function()
+			local build_dir = vim.fn.getcwd() .. "/build"
+
+			vim.ui.select({ "Да", "Нет" }, {
+				prompt = "Удалить всю папку build/?",
+			}, function(choice)
+				if choice == "Да" then
+					vim.fn.system("rm -rf " .. build_dir)
+					vim.notify("Build directory removed", vim.log.levels.INFO)
+				end
+			end)
+		end, { desc = "CMake: Purge Build" })
+
+		-- Просмотр текущей конфигурации
+		vim.keymap.set("n", "<leader>ci", function()
+			local info = {
+				"CMake Configuration:",
+				"  Preset: " .. (M.current_preset or "не выбран"),
+				"  Build Dir: build/" .. (M.current_preset or "???"),
+				"  Type: " .. (M.current_preset == "release" and "Release" or "Debug"),
+			}
+
+			-- Добавляем информацию о цели
+			local target = cmake.get_launch_target()
+			table.insert(info, "  Target: " .. (target or "не выбрана"))
+
+			-- Добавляем аргументы если есть
+			if target and M.runner_args[target] then
+				table.insert(info, "  Args: " .. M.runner_args[target])
+			end
+
+			vim.notify(table.concat(info, "\n"), vim.log.levels.INFO)
+		end, { desc = "CMake: Info" })
+
+		-- ==================== АВТОМАТИЗАЦИЯ ====================
+
+		-- Автоматическая генерация при открытии проекта
 		vim.api.nvim_create_autocmd("BufReadPost", {
 			pattern = { "*.cpp", "*.h", "*.hpp", "CMakeLists.txt" },
-			group = vim.api.nvim_create_augroup("CMakeAutoGen", { clear = true }),
+			group = vim.api.nvim_create_augroup("CMakeAutoSetup", { clear = true }),
+			once = true,
 			callback = function()
+				-- Проверяем наличие compile_commands.json
 				local root = vim.fn.getcwd()
-				local compile_file = root .. "/compile_commands.json"
+				local compile_db = root .. "/compile_commands.json"
 
-				-- Если файла нет, запускаем генерацию тихо
-				if vim.fn.filereadable(compile_file) == 0 then
-					vim.defer_fn(function()
-						vim.notify(
-							"compile_commands.json не найден. Запуск CMake...",
-							vim.log.levels.INFO
-						)
-						require("cmake-tools").generate()
-					end, 1000)
+				if vim.fn.filereadable(compile_db) == 0 then
+					-- Проверяем есть ли build директории
+					local has_debug = vim.fn.isdirectory(root .. "/build/debug") == 1
+					local has_release = vim.fn.isdirectory(root .. "/build/release") == 1
+
+					if has_debug or has_release then
+						-- Есть сборка, линкуем compile_commands.json
+						local preset = has_debug and "debug" or "release"
+						local source = root .. "/build/" .. preset .. "/compile_commands.json"
+
+						if vim.fn.filereadable(source) == 1 then
+							os.execute("ln -sf " .. source .. " " .. compile_db)
+							vim.notify("Linked compile_commands.json from " .. preset, vim.log.levels.INFO)
+						end
+					else
+						-- Нет сборки — предлагаем создать
+						vim.defer_fn(function()
+							vim.ui.select({ "debug", "release", "Пропустить" }, {
+								prompt = "Сгенерировать CMake?",
+							}, function(choice)
+								if choice and choice ~= "Пропустить" then
+									local preset = choice
+									M.current_preset = preset
+									cmake.generate({ preset = preset })
+								end
+							end)
+						end, 1000)
+					end
 				end
 			end,
 		})
 
-		vim.api.nvim_create_autocmd("BufWritePost", {
-			pattern = "CMakeLists.txt",
+		-- Авто-обновление compile_commands.json после сборки
+		vim.api.nvim_create_autocmd("User", {
+			pattern = { "CMakeBuildFinished" },
 			callback = function()
-				vim.defer_fn(function()
-					local confirm = vim.fn.confirm(
-						"CMakeLists.txt изменен. Обновить compile_commands.json?",
-						"&Да\n&Нет",
-						1
-					)
-					if confirm == 1 then
-						require("cmake-tools").generate()
-					end
-				end, 500)
+				local root = vim.fn.getcwd()
+				local preset = M.current_preset or "debug"
+				local source = root .. "/build/" .. preset .. "/compile_commands.json"
+				local target = root .. "/compile_commands.json"
+
+				if vim.fn.filereadable(source) == 1 then
+					os.execute("ln -sf " .. source .. " " .. target)
+				end
 			end,
 		})
 
-		-- Автоматическая индексация всех файлов при открытии проекта
-		vim.api.nvim_create_autocmd("BufReadPost", {
-			pattern = { "*.cpp", "*.h", "*.hpp", "CMakeLists.txt" },
-			group = vim.api.nvim_create_augroup("CppProjectIndex", { clear = true }),
-			once = true, -- Выполнить только 1 раз при открытии проекта
+		-- Сохранение/восстановление состояния между сессиями
+		local session_file = vim.fn.stdpath("cache") .. "/cmake_state.json"
+
+		vim.api.nvim_create_autocmd("VimLeavePre", {
 			callback = function()
-				vim.defer_fn(function()
-					-- Проверяем наличие compile_commands.json
-					local compile_file = vim.fn.getcwd() .. "/compile_commands.json"
-					if vim.fn.filereadable(compile_file) == 1 then
-						vim.notify("Clangd: фоновая индексация проекта...", vim.log.levels.INFO)
+				local state = {
+					preset = M.current_preset,
+					args = M.runner_args,
+				}
+				local file = io.open(session_file, "w")
+				if file then
+					file:write(vim.json.encode(state))
+					file:close()
+				end
+			end,
+		})
 
-						-- Создаём папку для кэша индекса
-						vim.fn.mkdir(vim.fn.getcwd() .. "/.clangd", "p")
-
-						-- Принудительно открываем главный файл для запуска clangd
-						local main_files = { "src/main.cpp", "main.cpp", "src/main.c", "main.c" }
-						for _, file in ipairs(main_files) do
-							if vim.fn.filereadable(file) == 1 then
-								vim.cmd("silent! edit " .. file)
-								vim.notify(
-									"Индексация запущена. Проверьте :LspInfo",
-									vim.log.levels.INFO
-								)
-								break
-							end
-						end
-					else
-						vim.notify(
-							"compile_commands.json не найден! Выполните <leader>cg",
-							vim.log.levels.WARN
-						)
+		vim.api.nvim_create_autocmd("VimEnter", {
+			callback = function()
+				local file = io.open(session_file, "r")
+				if file then
+					local content = file:read("*all")
+					file:close()
+					local ok, state = pcall(vim.json.decode, content)
+					if ok then
+						M.current_preset = state.preset
+						M.runner_args = state.args or {}
 					end
-				end, 2000)
+				end
 			end,
 		})
 	end,
