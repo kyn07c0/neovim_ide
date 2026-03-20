@@ -108,7 +108,15 @@ return {
 				vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
 				vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
 				vim.keymap.set("n", "gy", vim.lsp.buf.type_definition, opts)
-				vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+				vim.keymap.set("n", "K", function()
+					vim.lsp.buf.hover({
+						border = "rounded",
+						max_width = 80,
+						max_height = 20,
+						focusable = true,
+						focus = false,
+					})
+				end, { noremap = true, silent = true })
 				vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
 				vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 				vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, opts)

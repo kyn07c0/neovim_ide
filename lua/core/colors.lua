@@ -7,8 +7,9 @@ end
 
 -- Настройки прозрачности
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
-vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
-vim.api.nvim_set_hl(0, "FloatBorder", { bg = "none" })
+vim.api.nvim_set_hl(0, "NormalFloat", { bg = "#1e1e2e" })
+vim.api.nvim_set_hl(0, "FloatBorder", { fg = "#89b4fa", bg = "#1e1e2e" })
+vim.api.nvim_set_hl(0, "FloatTitle", { fg = "#f38ba8", bold = true })
 
 -- Кастомные группы подсветки для indent-blankline
 local function setup_indent_highlight()
