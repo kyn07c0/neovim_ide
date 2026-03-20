@@ -97,35 +97,43 @@ return {
 				format = function(entry, vim_item)
 					-- Добавляем иконки (можно использовать nerdfonts)
 					local kind_icons = {
-						Text = "",
-						Method = "m",
-						Function = "",
-						Constructor = "",
-						Field = "",
-						Variable = "",
-						Class = "",
-						Interface = "",
-						Module = "",
-						Property = "",
-						Unit = "",
-						Value = "",
-						Enum = "",
-						Keyword = "",
-						Snippet = "",
-						Color = "",
-						File = "",
-						Reference = "",
-						Folder = "",
-						EnumMember = "",
-						Constant = "",
-						Struct = "",
-						Event = "",
-						Operator = "",
-						TypeParameter = "",
+						Variable = "󰀫 ",
+						Function = "󰊕 ",
+						Keyword = "󰌋 ",
+						Text = "󰉿 ",
+						Method = "󰆧 ",
+						Constructor = " ",
+						Field = "󰜢 ",
+						Class = "󰠱 ",
+						Interface = " ",
+						Module = " ",
+						Property = "󰜢 ",
+						Unit = "󰑭 ",
+						Value = "󰎠 ",
+						Enum = " ",
+						Snippet = " ",
+						Color = "󰏘 ",
+						File = "󰈙 ",
+						Reference = "󰈇 ",
+						Folder = "󰉋 ",
+						EnumMember = " ",
+						Constant = "󰏿 ",
+						Struct = "󰙅 ",
+						Event = " ",
+						Operator = "󰆕 ",
+						TypeParameter = "",
 					}
+
+					-- Для cmdline source используем специфичные иконки
+					if entry.source.name == "cmdline" then
+						vim_item.kind = kind_icons[vim_item.kind] or "󰉿 "
+					else
+						vim_item.kind = (kind_icons[vim_item.kind] or "") .. vim_item.kind
+					end
 
 					vim_item.kind = string.format("%s %s", kind_icons[vim_item.kind] or "", vim_item.kind)
 					vim_item.menu = ({
+						cmdline = "[Cmd]",
 						nvim_lsp = "[LSP]",
 						luasnip = "[Snippet]",
 						buffer = "[Buffer]",
