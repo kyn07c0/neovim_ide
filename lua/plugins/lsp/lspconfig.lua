@@ -183,16 +183,20 @@ return {
 
 		-- Команда LspRestart для Neovim
 		vim.api.nvim_create_user_command("LspRestart", function()
-			local clients = vim.lsp.get_active_clients()
-			if #clients == 0 then
+			local bufnr = vim.api.nvim_get_current_buf()
+			---@diagnostic disable-next-line: deprecated
+			local clients = vim.lsp.buf_get_clients(bufnr)
+
+			if not clients or vim.tbl_isempty(clients) then
 				vim.notify("Нет активных LSP клиентов", vim.log.levels.WARN)
 				return
 			end
-			for _, client in ipairs(clients) do
-				vim.lsp.stop_client(client.id, true)
+
+			for client_id, _ in pairs(clients) do
+				vim.lsp.stop_client(client_id, true)
 			end
+
 			vim.notify("LSP клиенты перезапущены", vim.log.levels.INFO)
-			-- Переоткрываем текущий буфер для повторного подключения
 			vim.cmd("edit " .. vim.fn.expand("%:p"))
 		end, { desc = "Перезапустить LSP серверы" })
 	end,

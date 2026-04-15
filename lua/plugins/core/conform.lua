@@ -88,6 +88,8 @@ return {
 			clang_format = {
 				-- Таймаут для больших C++ файлов
 				timeout_ms = 2000,
+				-- Явно указываем использовать файл конфигурации
+				prepend_args = { "--style=file" },
 			},
 			stylua = {
 				timeout_ms = 500,
