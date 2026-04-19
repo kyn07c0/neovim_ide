@@ -55,7 +55,6 @@ return {
 
 		-- Настраиваем clangd через vim.lsp.config
 		vim.lsp.config("clangd", {
-			capabilities = capabilities,
 
 			cmd = {
 				"clangd",
@@ -97,8 +96,20 @@ return {
 			filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
 			root_markers = { ".clangd", "compile_commands.json", ".git", "CMakeLists.txt" },
 
+			-- Отключаем documentFormattingProvider, чтобы не дублировать
+			capabilities = vim.tbl_deep_extend("force", capabilities, {
+				textDocument = {
+					formatting = { dynamicRegistration = false },
+					rangeFormatting = { dynamicRegistration = false },
+				},
+			}),
+
 			-- on_attach — вызывается после присоединения клиента к буферу
 			on_attach = function(client, bufnr)
+				-- Явно отключаем форматирование от LSP
+				client.server_capabilities.documentFormattingProvider = false
+				client.server_capabilities.documentRangeFormattingProvider = false
+
 				local opts = { noremap = true, silent = true, buffer = bufnr }
 				vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
 				vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
@@ -116,6 +127,13 @@ return {
 				vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
 				vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 				vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, opts)
+
+				-- Форматирование через LSP как fallback
+				if client.server_capabilities.documentFormattingProvider then
+					vim.keymap.set("n", "<leader>lf", function()
+						vim.lsp.buf.format({ async = true })
+					end, { buffer = bufnr, desc = "LSP Format" })
+				end
 			end,
 		})
 

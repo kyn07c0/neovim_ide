@@ -19,7 +19,9 @@ return {
 		-- будет использоваться когда не найден ни один formatter для файла
 		default_format_opts = {
 			timeout_ms = 3000,
-			async = false,
+			async = true,
+			quiet = false,
+			lsp_format = "fallback",
 		},
 
 		-- асинхронное форматирование при сохранении
@@ -27,13 +29,26 @@ return {
 			-- отключаем для больших файлов
 			local line_count = vim.api.nvim_buf_line_count(bufnr)
 			if line_count > 10000 then
+				vim.notify(
+					"Файл слишком большой, форматирование пропущено",
+					vim.log.levels.WARN
+				)
+				return nil
+			end
+
+			-- Проверяем, есть ли форматтер
+			local formatters = require("conform").list_formatters(bufnr)
+			if #formatters == 0 then
+				vim.notify(
+					"Нет доступных форматтеров для этого файла",
+					vim.log.levels.WARN
+				)
 				return nil
 			end
 
 			return {
-				timeout_ms = 1000,
+				timeout_ms = 2000,
 				lsp_format = "never",
-				async = true,
 			}
 		end,
 
@@ -90,6 +105,16 @@ return {
 				timeout_ms = 2000,
 				-- Явно указываем использовать файл конфигурации
 				prepend_args = { "--style=file" },
+
+				-- Условие запуска
+				condition = function(ctx)
+					-- Не форматируем если нет .clang-format в корне
+					local root = vim.fn.findfile(".clang-format", ".;")
+					if root == "" then
+						vim.notify("Внимание: не найден .clang-format", vim.log.levels.WARN)
+					end
+					return true
+				end,
 			},
 			stylua = {
 				timeout_ms = 500,
