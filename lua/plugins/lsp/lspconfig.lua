@@ -99,10 +99,6 @@ return {
 
 			-- on_attach — вызывается после присоединения клиента к буферу
 			on_attach = function(client, bufnr)
-				-- Отключаем форматирование от clangd (используем conform)
-				client.server_capabilities.documentFormattingProvider = false
-				client.server_capabilities.documentRangeFormattingProvider = false
-
 				local opts = { noremap = true, silent = true, buffer = bufnr }
 				vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
 				vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)

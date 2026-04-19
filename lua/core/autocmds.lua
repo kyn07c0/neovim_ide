@@ -4,7 +4,7 @@
 local autocmd_group = vim.api.nvim_create_augroup("UserConfig", { clear = true })
 
 ---------- ФОРМАТИРОВАНИЕ ПРИ СОХРАНЕНИИ ----------
-
+--[[
 -- Форматирование C++ файлов при сохранении
 vim.api.nvim_create_autocmd("BufWritePre", {
 	group = autocmd_group,
@@ -23,7 +23,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	end,
 	desc = "Автоформатирование C++ файлов",
 })
---[[
+
 -- Форматирование Lua файлов при сохранении
 vim.api.nvim_create_autocmd("BufWritePre", {
 	group = autocmd_group,
