@@ -3,45 +3,36 @@
 -- Создаем группу для автокоманд
 local autocmd_group = vim.api.nvim_create_augroup("UserConfig", { clear = true })
 
----------- ФОРМАТИРОВАНИЕ ПРИ СОХРАНЕНИИ ----------
---[[
--- Форматирование C++ файлов при сохранении
-vim.api.nvim_create_autocmd("BufWritePre", {
-	group = autocmd_group,
-	pattern = { "*.cpp", "*.c", "*.h", "*.hpp", "*.cc", "*.cxx" },
-	callback = function(ev)
-		-- Форматируем через LSP, если доступно
-		local clients = vim.lsp.get_clients({ bufnr = ev.buf, name = "clangd" })
-		if #clients > 0 then
-			vim.lsp.buf.format({
-				async = false,
-				filter = function(client)
-					return client.name == "clangd"
-				end,
-			})
-		end
-	end,
-	desc = "Автоформатирование C++ файлов",
-})
+-- --- Настройка регистров для копирования и удаления ---
 
--- Форматирование Lua файлов при сохранении
-vim.api.nvim_create_autocmd("BufWritePre", {
-	group = autocmd_group,
-	pattern = { "*.lua" },
-	callback = function(ev)
-		local clients = vim.lsp.get_clients({ bufnr = ev.buf, name = "lua_ls" })
-		if #clients > 0 then
-			vim.lsp.buf.format({
-				async = false,
-				filter = function(client)
-					return client.name == "lua_ls"
-				end,
-			})
-		end
-	end,
-	desc = "Автоформатирование Lua файлов",
-})
---]]
+-- Копирование (yank) будет использовать системный буфер обмена ("+")
+-- yy - копировать всю строку в системный буфер
+-- y{motion} - копировать по движению в системный буфер
+vim.api.nvim_set_keymap("n", "yy", '"+yy', { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "y", '"+y', { noremap = true, silent = true })
+
+-- Удаление (delete) будет использовать стандартный регистр "" (который будет использован 'p' по умолчанию)
+-- dd - удалять всю строку в регистр ""
+-- d{motion} - удалять по движению в регистр ""
+-- Например: d$ - удалять до конца строки в регистр ""
+vim.api.nvim_set_keymap("n", "dd", "dd", { noremap = true, silent = true }) -- Удаление по умолчанию
+vim.api.nvim_set_keymap("v", "d", "d", { noremap = true, silent = true }) -- Удаление по умолчанию
+
+-- И чтобы 'p' по умолчанию вставлял из последнего использованного регистра (будь то "+" или "b")
+-- Но если вы хотите, чтобы 'p' ВСЕГДА вставлял из системного буфера, тогда:
+vim.api.nvim_set_keymap("n", "yy", '"+yy', { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "y", '"+y', { noremap = true, silent = true })
+
+-- Удаление будет использовать регистр "b"
+vim.api.nvim_set_keymap("n", "dd", '"bdd', { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "d", '"bd', { noremap = true, silent = true })
+
+-- Вставка из системного буфера (когда вы хотите именно то, что скопировали через yy)
+-- Используем <leader>p для этого, чтобы 'p' не перетирался удалением.
+-- Пример: <leader> = '\' (по умолчанию)
+vim.keymap.set("n", "<leader>p", '"+p', { noremap = true, silent = true, desc = "Paste from system clipboard" })
+vim.keymap.set("v", "<leader>p", '"+p', { noremap = true, silent = true, desc = "Paste from system clipboard" })
+
 ---------- АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ ----------
 
 -- Автосохранение при потере фокуса
