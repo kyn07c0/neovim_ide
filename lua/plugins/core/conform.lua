@@ -72,6 +72,7 @@ return {
 			json = { "prettierd", "prettier", stop_after_first = true },
 			jsonc = { "prettierd", "prettier", stop_after_first = true },
 			yaml = { "yamlfmt" },
+			yml = { "yamlfmt" },
 			markdown = {},
 
 			-- Shell / Docker / CMake
@@ -96,6 +97,8 @@ return {
 			sql = { "sqlfluff" },
 			html = { "prettierd" },
 			css = { "prettierd" },
+			jinja = { "yamlfmt" },
+			jinja2 = { "yamlfmt" },
 		},
 
 		-- Настройки конкретных форматтеров (очень полезно для clang-format)
@@ -125,6 +128,16 @@ return {
 
 			hadolint = {
 				command = "dockerfile_lint",
+			},
+			yamlfmt = {
+				prepend_args = {
+					"-formatter",
+					"retain_line_breaks=true",
+					"-formatter",
+					"retain_line_breaks_single=true",
+					"-formatter",
+					"include_document_start=true",
+				},
 			},
 		},
 	},
