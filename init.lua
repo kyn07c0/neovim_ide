@@ -17,6 +17,13 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Указываем Neovim, какие расширения файлов нужно сопоставлять
+vim.filetype.add({
+	extension = {
+		j2 = "jinja2",
+	},
+})
+
 -- Загрузка плагинов
 require("lazy").setup("plugins", {
 	change_detection = {

@@ -97,8 +97,8 @@ return {
 			sql = { "sqlfluff" },
 			html = { "prettierd" },
 			css = { "prettierd" },
-			jinja = { "yamlfmt" },
-			jinja2 = { "yamlfmt" },
+			jinja = { "prettier" },
+			jinja2 = { "prettier" },
 		},
 
 		-- Настройки конкретных форматтеров (очень полезно для clang-format)
@@ -138,6 +138,9 @@ return {
 					"-formatter",
 					"include_document_start=true",
 				},
+			},
+			prettier = {
+				args = { "--plugin", "prettier-plugin-jinja-template" },
 			},
 		},
 	},
