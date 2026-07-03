@@ -132,6 +132,8 @@ return {
 			yamlfmt = {
 				prepend_args = {
 					"-formatter",
+					"max_line_length=160",
+					"-formatter",
 					"retain_line_breaks=true",
 					"-formatter",
 					"retain_line_breaks_single=true",
