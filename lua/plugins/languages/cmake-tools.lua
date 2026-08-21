@@ -6,7 +6,23 @@ return {
 	ft = { "cmake", "cpp", "c" }, -- загружаем для CMake-файлов
 
 	config = function()
+		local function is_cmake_project()
+			local root = vim.fn.getcwd()
+			return vim.fn.filereadable(root .. "/CMakeLists.txt") == 1
+		end
+
 		local cmake = require("cmake-tools")
+		local root = vim.fn.getcwd()
+
+		-- Если нет CMakeLists.txt — отключаем плагин
+		if vim.fn.filereadable(root .. "/CMakeLists.txt") ~= 1 then
+			vim.notify(
+				"cmake-tools: не CMake-проект, плагин не активирован",
+				vim.log.levels.INFO
+			)
+			return
+		end
+
 		-- Хранилище состояния
 		local M = {
 			current_preset = "debug",
@@ -110,6 +126,10 @@ return {
 		end, { desc = "CMake: Toggle Debug/Release" })
 
 		vim.keymap.set("n", "<leader>cb", function()
+			if not is_cmake_project() then
+				vim.notify("Это не CMake-проект (нет CMakeLists.txt)", vim.log.levels.INFO)
+				return
+			end
 			cmake.build({ preset = M.current_preset or "debug" })
 		end, { desc = "CMake: Build" })
 		vim.keymap.set("n", "<leader>cB", function()
@@ -126,6 +146,10 @@ return {
 
 		-- Команда запуска с аргументами и DAP-интеграцией
 		vim.keymap.set("n", "<leader>cr", function()
+			if not is_cmake_project() then
+				vim.notify("Это не CMake-проект (нет CMakeLists.txt)", vim.log.levels.WARN)
+				return
+			end
 			local targets = cmake.get_launch_targets() or {}
 			if #targets == 0 then
 				vim.notify(
@@ -185,6 +209,10 @@ return {
 		end, { desc = "CMake: Run Target" })
 
 		vim.keymap.set("n", "<leader>cd", function()
+			if not is_cmake_project() then
+				vim.notify("Это не CMake-проект", vim.log.levels.WARN)
+				return
+			end
 			local preset = M.current_preset or "debug"
 			local build_dir = vim.fn.getcwd() .. "/build/" .. preset
 
@@ -213,9 +241,17 @@ return {
 		end, { desc = "CMake: Debug Target (DAP)" })
 
 		vim.keymap.set("n", "<leader>cg", function()
+			if not is_cmake_project() then
+				vim.notify("Это не CMake-проект", vim.log.levels.WARN)
+				return
+			end
 			cmake.generate({ preset = M.current_preset })
 		end, { desc = "CMake: Generate" })
 		vim.keymap.set("n", "<leader>cc", function()
+			if not is_cmake_project() then
+				vim.notify("Это не CMake-проект", vim.log.levels.WARN)
+				return
+			end
 			cmake.clean()
 		end, { desc = "CMake: Clean" })
 		vim.keymap.set("n", "<leader>cC", function()
@@ -229,7 +265,6 @@ return {
 		vim.api.nvim_create_autocmd("User", {
 			pattern = "CMakeBuildFinished",
 			callback = function()
-				local root = vim.fn.getcwd()
 				local source = root .. "/build/" .. (M.current_preset or "debug") .. "/compile_commands.json"
 				if vim.fn.filereadable(source) == 1 then
 					os.execute("ln -sf " .. source .. " " .. root .. "/compile_commands.json")

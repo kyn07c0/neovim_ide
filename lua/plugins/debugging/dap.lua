@@ -14,6 +14,12 @@ return {
 		local dap = require("dap")
 		local dapui = require("dapui")
 
+		-- Проверка, что текущая директория — CMake-проект
+		local function is_cmake_project()
+			local root = vim.fn.getcwd()
+			return vim.fn.filereadable(root .. "/CMakeLists.txt") == 1
+		end
+
 		-- ============================================
 		-- ОТКЛЮЧЕНИЕ ВСТРОЕННОГО JUMP-TO-FRAME
 		-- ============================================
@@ -212,6 +218,11 @@ return {
 
 		---Главная функция: создаёт список DAP-конфигураций из CMake
 		local function generate_cmake_configs()
+			-- Проверка, что текущая директория — CMake-проект
+			if not is_cmake_project() then
+				return {}
+			end
+
 			local preset = get_current_preset()
 			local build_dir = get_build_dir(preset)
 
@@ -312,62 +323,8 @@ return {
 		-- Мы переопределяем это: открываем в существующем окне с кодом.
 
 		-- Удаляем стандартный listener для jump_to_frame
+		---@diagnostic disable-next-line: undefined-field
 		dap.listeners.after.event_stopped["dapui_config"] = nil
-
-		-- Кастомный обработчик остановки: ищем окно с кодом и открываем там
-		dap.listeners.after.event_stopped["custom_jump"] = function(session, body)
-			local thread_id = body.threadId
-			if not thread_id then
-				return
-			end
-
-			-- Получаем текущий frame
-			session:request("stackTrace", { threadId = thread_id, startFrame = 0, levels = 1 }, function(err, response)
-				if err or not response or not response.stackFrames or #response.stackFrames == 0 then
-					return
-				end
-
-				local frame = response.stackFrames[1]
-				if not frame.source or not frame.source.path then
-					-- Нет исходника — не открываем ассемблер
-					return
-				end
-
-				local source_path = frame.source.path
-				local line = frame.line or 1
-
-				-- Проверяем, существует ли файл
-				if vim.fn.filereadable(source_path) == 0 then
-					return
-				end
-
-				-- Ищем окно с обычным кодом (не dap-ui, не terminal)
-				local target_win = nil
-				for _, win in ipairs(vim.api.nvim_list_wins()) do
-					local buf = vim.api.nvim_win_get_buf(win)
-					local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-					local bufname = vim.api.nvim_buf_get_name(buf)
-
-					-- Ищем окно с обычным файлом (не dap, не терминал, не плавающее)
-					if buftype == "" and not bufname:match("^dap%-") then
-						target_win = win
-						break
-					end
-				end
-
-				-- Если не нашли подходящее окно — используем текущее
-				if not target_win then
-					target_win = vim.api.nvim_get_current_win()
-				end
-
-				-- Открываем файл в найденном окне
-				vim.api.nvim_win_call(target_win, function()
-					vim.cmd("keepalt edit " .. vim.fn.fnameescape(source_path))
-					vim.api.nvim_win_set_cursor(target_win, { line, 0 })
-					vim.cmd("normal! zz") -- Центрируем строку
-				end)
-			end)
-		end
 
 		-- ============================================
 		-- КАСТОМНЫЙ JUMP (без dap-src)
@@ -399,7 +356,7 @@ return {
 				vim.schedule(function()
 					for _, win in ipairs(vim.api.nvim_list_wins()) do
 						local buf = vim.api.nvim_win_get_buf(win)
-						local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
+						local buftype = vim.bo[buf].buftype
 						if buftype == "" then
 							pcall(function()
 								vim.api.nvim_win_call(win, function()

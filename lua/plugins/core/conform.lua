@@ -97,8 +97,8 @@ return {
 			sql = { "sqlfluff" },
 			html = { "prettierd" },
 			css = { "prettierd" },
-			jinja = { "prettier" },
-			jinja2 = { "prettier" },
+			jinja = {},
+			jinja2 = {},
 		},
 
 		-- Настройки конкретных форматтеров (очень полезно для clang-format)
