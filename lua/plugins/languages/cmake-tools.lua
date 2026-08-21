@@ -185,7 +185,6 @@ return {
 		end, { desc = "CMake: Run Target" })
 
 		vim.keymap.set("n", "<leader>cd", function()
-			local cmake = require("cmake-tools")
 			local preset = M.current_preset or "debug"
 			local build_dir = vim.fn.getcwd() .. "/build/" .. preset
 

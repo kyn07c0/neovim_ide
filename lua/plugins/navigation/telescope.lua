@@ -25,10 +25,7 @@ return {
 		local actions = require("telescope.actions")
 		local themes = require("telescope.themes")
 
-		-- Отключаем treesitter в превью для стабильности
-		local has_ts, ts_utils = pcall(require, "telescope.previewers.utils")
-		local ts_enabled = has_ts and ts_utils.ts_highlighter ~= nil
-
+		---@diagnostic disable-next-line: undefined-field
 		telescope.setup({
 			defaults = {
 
@@ -107,6 +104,7 @@ return {
 		})
 
 		-- Активируем расширения
+		---@diagnostic disable: undefined-field
 		pcall(function()
 			telescope.load_extension("fzf")
 			telescope.load_extension("ui-select")

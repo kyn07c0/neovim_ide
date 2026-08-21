@@ -140,7 +140,7 @@ return {
 			language = "Русский", -- подсказки на русском (если модель поддерживает)
 
 			-- Qwen3 любит чёткие системные промпты
-			system_prompt = function(opts)
+			system_prompt = function()
 				return [[
 Ты — эксперт по программированию.
 Предоставляйте только окончательное решение/код
@@ -155,6 +155,7 @@ return {
 
 	-- Необязательно, но делает чат намного красивее
 	config = function(_, opts)
+		---@diagnostic disable-next-line: undefined-field
 		require("codecompanion").setup(opts)
 
 		-- Модуль для работы с контекстом проекта
@@ -320,12 +321,10 @@ return {
 			vim.cmd("CodeCompanionChat")
 			vim.defer_fn(function()
 				local chat_buf = vim.api.nvim_get_current_buf()
-				-- Проверяем, что это буфер чата (по наличию специфичных опций или имени)
-				local buf_name = vim.api.nvim_buf_get_name(chat_buf)
 
-				vim.api.nvim_buf_set_option(chat_buf, "modifiable", true)
+				vim.bo[chat_buf].modifiable = true
 				vim.api.nvim_buf_set_lines(chat_buf, 0, 0, false, lines)
-				vim.api.nvim_buf_set_option(chat_buf, "modifiable", false)
+				vim.bo[chat_buf].modifiable = false
 				vim.notify(
 					"✅ Добавлено " .. #files .. " файлов в контекст",
 					vim.log.levels.INFO
@@ -347,8 +346,9 @@ return {
 		})
 
 		-- Пример: быстрый переключатель модели через команду
-		vim.api.nvim_create_user_command("CCModel", function(opts)
-			require("codecompanion").set_adapter(opts.args)
+		vim.api.nvim_create_user_command("CCModel", function(args)
+			---@diagnostic disable-next-line: undefined-field
+			require("codecompanion").set_adapter(args.args)
 		end, {
 			nargs = 1,
 			complete = function()

@@ -3,9 +3,9 @@
 return {
 	"neovim/nvim-lspconfig",
 	optional = true,
-	config = function(_, opts)
+	config = function(_)
 		-- Настройка переименования токенов для лучшей совместимости
-		local function modify_semantic_tokens(client, bufnr)
+		local function modify_semantic_tokens(client)
 			if not client.server_capabilities.semanticTokensProvider then
 				return
 			end
@@ -30,7 +30,7 @@ return {
 			callback = function(args)
 				local client = vim.lsp.get_client_by_id(args.data.client_id)
 				if client then
-					modify_semantic_tokens(client, args.buf)
+					modify_semantic_tokens(client)
 				end
 			end,
 		})
