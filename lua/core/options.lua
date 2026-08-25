@@ -12,9 +12,19 @@ opt.tabstop = 4 -- Размер табуляции в пробелах
 opt.shiftwidth = 4 -- Размер отступа для > и <
 opt.softtabstop = 4 -- Количество пробелов при нажатии Tab
 opt.expandtab = false -- Преобразовывать табы в пробелы
-opt.smartindent = true -- Умные отступы
-opt.smarttab = true -- Умные табы
+--opt.smartindent = true -- Умные отступы
+--opt.smarttab = true -- Умные табы
 opt.autoindent = true -- Автоматические отступы
+opt.shiftround = true -- округлять отступы до кратных shiftwidth
+vim.opt.list = true
+vim.opt.listchars = {
+	tab = "»·", -- табы (если они всё же есть)
+	trail = "·", -- пробелы в конце строки
+	extends = "›",
+	precedes = "‹",
+	nbsp = "␣",
+	lead = " ", -- скрывать пробелы в начале строки
+}
 
 ---------- ПОИСК ----------
 opt.ignorecase = true -- Игнорировать регистр при поиске
@@ -76,8 +86,8 @@ opt.path:append("/usr/local/include")
 vim.o.winborder = "rounded"
 
 ---------- ПОДСВЕТКА ТЕКУЩЕЙ СТРОКИ ПРИ ОТЛАДКЕ ----------
-vim.api.nvim_set_hl(0, "debugPC", { bg = "#3c3836" }) -- Program counter
-vim.api.nvim_set_hl(0, "debugBreakpoint", { fg = "#fb4934" })
+vim.opt.cursorline = true
+vim.opt.cursorlineopt = "both" -- и строка, и номер
 
 ---------- ДИАГНОСТИКА ----------
 vim.diagnostic.config({
@@ -91,7 +101,7 @@ vim.diagnostic.config({
 	severity_sort = true,
 	float = {
 		border = "rounded",
-		source = "always",
+		source = true,
 		header = "",
 		prefix = "",
 	},

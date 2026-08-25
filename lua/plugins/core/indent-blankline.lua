@@ -1,59 +1,56 @@
 -- Вертикальные линии для уровней отступов (indent guides)
 
 return {
-	{
-		"lukas-reineke/indent-blankline.nvim",
-		main = "ibl",
-		event = { "BufReadPost", "BufNewFile" },
-		dependencies = { "rebelot/kanagawa.nvim" },
+	"lukas-reineke/indent-blankline.nvim",
+	event = "VeryLazy",
+	config = function()
+		-- Новый API indent-blankline v3
+		local ibl = require("ibl")
 
-		config = function()
-			-- Простые цвета — 1 цвет для отступов, 1 для scope
-			vim.api.nvim_set_hl(0, "IBLIndent", { fg = "#3b4261", nocombine = true })
-			vim.api.nvim_set_hl(0, "IBLScope", { fg = "#7aa2f7", nocombine = true })
+		-- Опционально: переопределяем символы и подсветку
+		ibl.setup({
+			enabled = true,
+			indent = {
+				char = "▏", -- символ для обычных отступов
+				highlight = "IblIndent",
+			},
+			scope = {
+				enabled = false, -- подсветка текущего контекста
+				char = "|", -- символ активного контекста
+				highlight = "IblScope",
+			},
+			exclude = {
+				filetypes = {
+					"help",
+					"startuptime",
+					"neo-tree",
+					"lazy",
+					"mason",
+					"notify",
+					"noice",
+					"lspinfo",
+				},
+				buftypes = {
+					"terminal",
+					"nofile",
+					"quickfix",
+					"prompt",
+				},
+			},
+		})
 
-			require("ibl").setup({
-				indent = {
-					char = "▏",
-					tab_char = "▏",
-					smart_indent_cap = true, -- Автоматически скрывает отступы после текста
-					highlight = "IBLIndent",
-				},
-				scope = {
-					enabled = true,
-					show_start = false, -- отключаем подсветку начала
-					show_end = false, -- отключаем подсветку конца
-					char = "▎",
-					highlight = "IBLScope",
-				},
-				exclude = {
-					filetypes = {
-						"help",
-						"alpha",
-						"dashboard",
-						"neo-tree",
-						"NvimTree",
-						"Trouble",
-						"trouble",
-						"lazy",
-						"mason",
-						"notify",
-						"toggleterm",
-						"lazyterm",
-						"terminal",
-						"packer",
-						"lspinfo",
-						"TelescopePrompt",
-						"TelescopeResults",
-					},
-					buftypes = {
-						"terminal",
-						"nofile",
-						"quickfix",
-						"prompt",
-					},
-				},
-			})
-		end,
-	},
+		-- Мягкие цвета, чтобы полосы не перекрывали каретку
+		vim.api.nvim_set_hl(0, "IndentBlanklineChar", {
+			fg = "#3b3b4b",
+			blend = 30,
+		})
+		vim.api.nvim_set_hl(0, "IndentBlanklineContextChar", {
+			fg = "#7aa2f7",
+			bold = true,
+		})
+
+		-- Курсорная строка поверх полос (чтобы каретка была видна)
+		vim.opt.cursorline = true
+		vim.api.nvim_set_hl(0, "CursorLine", { bg = "#1f1f2e" })
+	end,
 }
