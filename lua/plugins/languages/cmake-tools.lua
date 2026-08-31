@@ -97,9 +97,9 @@ return {
 					end
 					M.current_preset = choice
 					vim.defer_fn(function()
-						local root = vim.fn.getcwd()
-						local source = root .. "/build/" .. choice .. "/compile_commands.json"
-						local target = root .. "/compile_commands.json"
+						local root_path = vim.fn.getcwd()
+						local source = root_path .. "/build/" .. choice .. "/compile_commands.json"
+						local target = root_path .. "/compile_commands.json"
 						if vim.fn.filereadable(source) == 1 then
 							os.execute("ln -sf " .. source .. " " .. target)
 						end

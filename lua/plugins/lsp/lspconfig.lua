@@ -140,15 +140,6 @@ return {
 				return
 			end
 
-			-- Игнорируем build/, .git/, node_modules/ и т.д.
-			local ignore_dirs = { "build", ".git", "node_modules", "third_party", ".cache", "vcpkg_installed" }
-			ignore_pattern = table.concat(
-				vim.tbl_map(function(d)
-					return "--ignore=" .. d
-				end, ignore_dirs),
-				" "
-			)
-
 			vim.notify("Запуск clang-tidy...", vim.log.levels.INFO)
 
 			local cmd = {

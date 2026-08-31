@@ -11,6 +11,7 @@ return {
 		"jay-babu/mason-nvim-dap.nvim",
 	},
 	config = function()
+		---@diagnostic disable: undefined-field, inject-field
 		local dap = require("dap")
 		local dapui = require("dapui")
 

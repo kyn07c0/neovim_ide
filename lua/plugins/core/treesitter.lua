@@ -314,8 +314,8 @@ return {
 		vim.api.nvim_create_autocmd({ "FileType" }, {
 			pattern = { "c", "cpp", "lua", "vim", "markdown", "json", "yaml", "bash" },
 			callback = function(ev)
-				local ok = pcall(vim.treesitter.start, ev.buf)
-				if not ok then
+				local ok_start = pcall(vim.treesitter.start, ev.buf)
+				if not ok_start then
 					-- Если парсер ещё не готов — пробуем позже (через 100 мс)
 					vim.defer_fn(function()
 						pcall(vim.treesitter.start, ev.buf)
@@ -323,17 +323,7 @@ return {
 				end
 			end,
 		})
-		--[[
-		-- Folding для C/C++ (точный, на основе дерева)
-		vim.api.nvim_create_autocmd({ "FileType" }, {
-			pattern = { "c", "cpp" },
-			callback = function()
-				vim.wo.foldmethod = "expr"
-				vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-				vim.wo.foldenable = false -- не сворачивать сразу при открытии
-			end,
-		})
---]]
+
 		-- Indent на основе treesitter (экспериментально, но полезно)
 		vim.api.nvim_create_autocmd({ "FileType" }, {
 			pattern = { "c", "cpp", "lua" },
