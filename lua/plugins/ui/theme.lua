@@ -158,7 +158,7 @@ return {
 
 						["@parameter"] = { fg = palette.peachRed, italic = true },
 						["@field"] = { fg = palette.boatYellow2 },
-						["@property"] = { fg = palette.carpYellow, bolt = true },
+						["@property"] = { fg = palette.carpYellow, bold = true },
 
 						["@conditional"] = { fg = palette.autumnRed, bold = true },
 						["@repeat"] = { fg = palette.autumnRed, bold = true },
@@ -235,8 +235,6 @@ return {
 					light = "lotus",
 				},
 			})
-
-			vim.cmd.colorscheme("kanagawa-" .. theme_variant)
 
 			-- Гарантированно восстанавливаем фон после загрузки темы
 			vim.schedule(function()
