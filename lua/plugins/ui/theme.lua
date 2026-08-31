@@ -158,7 +158,7 @@ return {
 
 						["@parameter"] = { fg = palette.peachRed, italic = true },
 						["@field"] = { fg = palette.boatYellow2 },
-						["@property"] = { fg = palette.springViolet2 },
+						["@property"] = { fg = palette.carpYellow, bolt = true },
 
 						["@conditional"] = { fg = palette.autumnRed, bold = true },
 						["@repeat"] = { fg = palette.autumnRed, bold = true },

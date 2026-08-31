@@ -6,6 +6,10 @@ return {
 	version = false,
 
 	config = function()
+		local install_dir = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/parser"
+		-- Путь к парсерам в runtimepath
+		vim.opt.rtp:append(install_dir)
+
 		-- Проверяем доступность модуля
 		local ok, treesitter = pcall(require, "nvim-treesitter")
 		if not ok then
@@ -312,8 +316,9 @@ return {
 
 		-- Автозапуск подсветки только после успешной установки парсера
 		vim.api.nvim_create_autocmd({ "FileType" }, {
-			pattern = { "c", "cpp", "lua", "vim", "markdown", "json", "yaml", "bash" },
+			pattern = { "c", "cpp", "lua", "vim", "markdown", "json", "bash" },
 			callback = function(ev)
+				vim.bo[ev.buf].syntax = "off" -- отключение встроенной подстветки vim
 				local ok_start = pcall(vim.treesitter.start, ev.buf)
 				if not ok_start then
 					-- Если парсер ещё не готов — пробуем позже (через 100 мс)
@@ -321,6 +326,19 @@ return {
 						pcall(vim.treesitter.start, ev.buf)
 					end, 100)
 				end
+			end,
+		})
+
+		-- Отдельный autocmd для YAML (с отключением vim-syntax)
+		vim.api.nvim_create_autocmd("FileType", {
+			pattern = { "yaml", "yml" },
+			callback = function(args)
+				vim.defer_fn(function()
+					vim.api.nvim_buf_call(args.buf, function()
+						vim.cmd("setlocal syntax=off")
+					end)
+					pcall(vim.treesitter.start, args.buf)
+				end, 50)
 			end,
 		})
 
