@@ -27,12 +27,6 @@ vim.api.nvim_set_keymap("v", "y", '"+y', { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "dd", '"bdd', { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "d", '"bd', { noremap = true, silent = true })
 
--- Вставка из системного буфера (когда вы хотите именно то, что скопировали через yy)
--- Используем <leader>p для этого, чтобы 'p' не перетирался удалением.
--- Пример: <leader> = '\' (по умолчанию)
-vim.keymap.set("n", "<leader>p", '"+p', { noremap = true, silent = true, desc = "Paste from system clipboard" })
-vim.keymap.set("v", "<leader>p", '"+p', { noremap = true, silent = true, desc = "Paste from system clipboard" })
-
 ---------- АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ ----------
 
 -- Автосохранение при потере фокуса
