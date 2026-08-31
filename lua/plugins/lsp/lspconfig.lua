@@ -11,48 +11,6 @@ return {
 	config = function()
 		local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-		-- Расширения для семантических токенов
-		capabilities.textDocument.semanticTokens = {
-			dynamicRegistration = true,
-			tokenTypes = {
-				"namespace",
-				"type",
-				"class",
-				"enum",
-				"interface",
-				"struct",
-				"typeParameter",
-				"parameter",
-				"variable",
-				"property",
-				"enumMember",
-				"event",
-				"function",
-				"method",
-				"macro",
-				"keyword",
-				"modifier",
-				"comment",
-				"string",
-				"number",
-				"regexp",
-				"operator",
-			},
-			tokenModifiers = {
-				"declaration",
-				"definition",
-				"readonly",
-				"static",
-				"deprecated",
-				"abstract",
-				"async",
-				"modification",
-				"documentation",
-				"defaultLibrary",
-			},
-			formats = { "relative" },
-		}
-
 		-- Настраиваем clangd через vim.lsp.config
 		vim.lsp.config("clangd", {
 
@@ -127,13 +85,6 @@ return {
 				vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
 				vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 				vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, opts)
-
-				-- Форматирование через LSP как fallback
-				if client.server_capabilities.documentFormattingProvider then
-					vim.keymap.set("n", "<leader>lf", function()
-						vim.lsp.buf.format({ async = true })
-					end, { buffer = bufnr, desc = "LSP Format" })
-				end
 			end,
 		})
 
@@ -175,24 +126,82 @@ return {
 		-- Команда для проверки всех файлов проекта
 		vim.api.nvim_create_user_command("CheckAllFiles", function()
 			local root = vim.fn.getcwd()
-			local files = vim.fn.globpath(root, "**/*.cpp", false, true)
-			vim.list_extend(files, vim.fn.globpath(root, "**/*.h", false, true))
-			vim.list_extend(files, vim.fn.globpath(root, "**/*.hpp", false, true))
+			local compile_db = vim.fn.find("compile_commands.json", {
+				path = root,
+				upward = true,
+				type = "file",
+			})[1]
 
-			vim.notify("Проверка " .. #files .. " файлов...", vim.log.levels.INFO)
-
-			for i, file in ipairs(files) do
-				vim.cmd("silent! edit " .. file)
-				vim.cmd("silent! write")
-				if i % 10 == 0 then
-					vim.notify("Обработано " .. i .. "/" .. #files .. " файлов", vim.log.levels.INFO)
-				end
+			if compile_db then
+				vim.notify(
+					"compile_commands.json не найден! Соберите проект с -DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+					vim.log.levels.ERROR
+				)
+				return
 			end
 
-			vim.notify(
-				"Проверка завершена! Ошибки показаны в диагностике",
-				vim.log.levels.INFO
+			-- Игнорируем build/, .git/, node_modules/ и т.д.
+			local ignore_dirs = { "build", ".git", "node_modules", "third_party", ".cache", "vcpkg_installed" }
+			local ignore_pattern = table.concat(
+				vim.tbl_map(function(d)
+					return "--ignore=" .. d
+				end, ignore_dirs),
+				" "
 			)
+
+			vim.notify("Запуск clang-tidy...", vim.log.levels.INFO)
+
+			local cmd = {
+				"clang-tidy",
+				"-p",
+				vim.fn.fnamemodify(compile_db, ":h"),
+				"--quiet",
+				root .. "/**/*.cpp",
+				root .. "/**/*.h",
+				root .. "/**/*.hpp",
+			}
+
+			vim.system(cmd, {
+				stdout = function(_, data)
+					if data then
+						vim.schedule(function()
+							-- Парсим вывод clang-tidy и добавляем в quickfix
+							local lines = vim.split(data, "\n", { plain = true })
+							local qf_items = {}
+							for _, line in ipairs(lines) do
+								local file, lnum, col, msg = line:match("^(.-):(%d+):(%d+):%s*(.+)$")
+								if file then
+									table.insert(qf_items, {
+										filename = file,
+										lnum = tonumber(lnum),
+										col = tonumber(col),
+										text = msg,
+									})
+								end
+							end
+							if #qf_items > 0 then
+								vim.fn.setqflist(qf_items, "a")
+							end
+						end)
+					end
+				end,
+				on_exit = function(_, code)
+					vim.schedule(function()
+						if code == 0 then
+							vim.notify(
+								"Проверка завершена. Проблем не найдено!",
+								vim.log.levels.INFO
+							)
+						else
+							vim.cmd("copen")
+							vim.notify(
+								"Проверка завершена. Результаты в quickfix.",
+								vim.log.levels.INFO
+							)
+						end
+					end)
+				end,
+			})
 		end, { desc = "Проверить все файлы проекта на ошибки" })
 
 		-- Команда LspRestart для Neovim

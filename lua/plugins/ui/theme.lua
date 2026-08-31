@@ -56,7 +56,6 @@ return {
 						-- ==========================================
 						-- Базовые UI элементы
 						-- ==========================================
-						Normal = { bg = "none" },
 						NormalFloat = { bg = "none" },
 						NormalDark = { fg = theme.ui.fg_dim, bg = theme.ui.bg_m3 },
 						LazyNormal = { bg = theme.ui.bg_m3, fg = theme.ui.fg_dim },

@@ -47,9 +47,7 @@ opt.sidescrolloff = 5 -- Минимальное количество колон�
 opt.equalalways = false -- Отключение автоматического выравнивания окон
 opt.wrap = false -- Не переносить длинные строки
 
-opt.lazyredraw = true -- Ленивая перерисовка
 opt.redrawtime = 1500 -- Максимальное время перерисовки
-opt.ttyfast = true -- Ускорение вывода в терминал
 opt.sidescroll = 1 -- Минимальное количество строк для горизонтального скроллинга
 opt.scrolljump = 5 -- Количество строк для прыжка при скроллинге
 
@@ -68,7 +66,7 @@ opt.updatetime = 300 -- Частота обновления (мс)
 opt.timeoutlen = 500 -- Таймаут для маппингов (мс)
 
 ---------- АВТОЗАВЕРШЕНИЕ ----------
-opt.completeopt = { "menuone", "noselect", "noinsert" }
+opt.completeopt = { "menu", "menuone", "noselect" }
 opt.shortmess = "filnxtToOFWIcC"
 
 ---------- КОДИРОВКА ----------

@@ -158,81 +158,6 @@ vim.api.nvim_create_autocmd("FileType", {
 	desc = "Добавление парных символов для C++",
 })
 
----------- АВТООПРЕДЕЛЕНИЕ ФАЙЛОВ ----------
-
---[[
--- Автоопределение типов файлов по расширению
-vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-	group = autocmd_group,
-	pattern = {
-		-- C/C++ расширения
-		"*.cxx",
-		"*.cc",
-		"*.C",
-		"*.hxx",
-		"*.hh",
-		"*.H",
-		"*.inl",
-		"*.ipp",
-		"*.tpp",
-		"*.tcc",
-		-- Python
-		"*.pyx",
-		"*.pxd",
-		"*.pxi",
-		-- Shell
-		"*.sh",
-		"*.bash",
-		"*.zsh",
-		"*.fish",
-		-- Конфиги
-		"*.conf",
-		"*.cfg",
-		"*.ini",
-		-- Docker
-		"Dockerfile",
-		"*.dockerfile",
-		-- Git
-		".gitignore",
-		".gitconfig",
-		".gitmodules",
-	},
-	callback = function(ev)
-		local ft_map = {
-			-- C/C++
-			["cxx"] = "cpp",
-			["cc"] = "cpp",
-			["C"] = "cpp",
-			["hxx"] = "cpp",
-			["hh"] = "cpp",
-			["H"] = "cpp",
-			["inl"] = "cpp",
-			["ipp"] = "cpp",
-			["tpp"] = "cpp",
-			["tcc"] = "cpp",
-			-- Python
-			["pyx"] = "python",
-			["pxd"] = "python",
-			["pxi"] = "python",
-			-- Shell
-			["sh"] = "sh",
-			["bash"] = "bash",
-			["zsh"] = "zsh",
-			["fish"] = "fish",
-			-- Конфиги
-			["conf"] = "conf",
-			["cfg"] = "conf",
-			["ini"] = "conf",
-		}
-
-		local ext = ev.match:match("%.(%w+)$")
-		if ext and ft_map[ext] then
-			vim.bo.filetype = ft_map[ext]
-		end
-	end,
-	desc = "Автоопределение типов файлов",
-})
---]]
 ---------- АВТООПРЕДЕЛЕНИЕ ПРОЕКТА ----------
 
 -- Автоопределение CMake проекта
@@ -325,7 +250,7 @@ vim.api.nvim_create_autocmd("FileType", {
 ---------- УВЕДОМЛЕНИЯ ----------
 
 -- Предупреждение о длинных строках
-vim.api.nvim_create_autocmd("BufEnter", {
+vim.api.nvim_create_autocmd("CursorMoved", {
 	group = autocmd_group,
 	pattern = "*",
 	callback = function()
@@ -342,45 +267,17 @@ vim.api.nvim_create_autocmd("BufEnter", {
 
 ------------- ОКНА -------------
 
--- Защита ширины neo-tree
-vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
-	callback = function()
-		local buf = vim.api.nvim_get_current_buf()
-		if vim.bo[buf].filetype == "neo-tree" then
-			local win = vim.api.nvim_get_current_win()
-			local width = vim.api.nvim_win_get_width(win)
-			if width ~= 30 then
-				vim.api.nvim_win_set_width(win, 30)
-			end
-		end
-	end,
-})
-
--- Добавьте это в init.lua ПОСЛЕ настройки neo-tree
-local function fix_neo_tree_width()
-	local winid = vim.api.nvim_get_current_win()
-	local buf = vim.api.nvim_win_get_buf(winid)
-	if vim.bo[buf].filetype == "neo-tree" then
-		vim.api.nvim_win_set_width(winid, 30)
-	end
-end
-
--- Срабатывает при ЛЮБОМ входе в окно
-vim.api.nvim_create_autocmd("WinEnter", {
-	callback = fix_neo_tree_width,
-})
-
--- Также при изменении размера окна
 vim.api.nvim_create_autocmd("WinResized", {
+	group = autocmd_group,
 	callback = function()
-		-- Проверяем ВСЕ окна, потому что WinResized не даёт winid
 		for _, win in ipairs(vim.api.nvim_list_wins()) do
 			local buf = vim.api.nvim_win_get_buf(win)
-			if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == "neo-tree" then
-				vim.api.nvim_win_set_width(win, 30)
+			if vim.bo[buf].filetype == "neo-tree" then
+				pcall(vim.api.nvim_win_set_width, win, 30)
 			end
 		end
 	end,
+	desc = "Фиксация ширины neo-tree при изменении layout",
 })
 
 -- Обновление neo-tree после git операций

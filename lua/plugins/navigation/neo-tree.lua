@@ -53,12 +53,6 @@ return {
 				},
 			},
 
-			-- Кастомная функция для обновления диагностики
-			diagnostic_updated = function()
-				-- Перезагружаем neo-tree при обновлении диагностики
-				require("neo-tree.sources.manager").refresh("filesystem")
-			end,
-
 			filesystem = {
 				filtered_items = {
 					visible = true,
@@ -226,47 +220,11 @@ return {
 				{
 					event = "neo_tree_buffer_enter",
 					handler = function()
-						-- Защита от рекурсивных вызовов
-						if vim.v.event.abort then
-							return
-						end
-
-						-- Откладываем выполнение до следующего тика event loop,
-						-- чтобы избежать конфликтов с закрывающимися окнами
-						vim.schedule(function()
-							require("neo-tree.sources.manager").refresh("filesystem")
-
-							-- Получаем текущее окно neo-tree
-							local winid = vim.api.nvim_get_current_win()
-
-							-- Проверяем, что окно всё ещё валидно
-							if vim.api.nvim_win_is_valid(winid) then
-								local bufnr = vim.api.nvim_win_get_buf(winid)
-								if vim.bo[bufnr].filetype == "neo-tree" then
-									pcall(vim.api.nvim_win_set_width, winid, 30)
-								end
-							end
-
-							-- Проверяем, что мы действительно в буфере neo-tree
-							local bufnr = vim.api.nvim_win_get_buf(winid)
-							local bufname = vim.api.nvim_buf_get_name(bufnr)
-							if not bufname:match("neo%-tree") then
-								return
-							end
-
-							-- Безопасно устанавливаем ширину
+						local winid = vim.api.nvim_get_current_win()
+						local bufnr = vim.api.nvim_win_get_buf(winid)
+						if vim.bo[bufnr].filetype == "neo-tree" then
 							pcall(vim.api.nvim_win_set_width, winid, 30)
-
-							-- Безопасно перемещаем окно влево (используем pcall для перехвата ошибок)
-							local ok, _ = pcall(function()
-								vim.cmd.wincmd("H")
-							end)
-							if not ok then
-								-- Если не удалось переместить (например, окно закрывается),
-								-- просто игнорируем ошибку
-								return
-							end
-						end)
+						end
 					end,
 				},
 				-- Обновление при изменении диагностики

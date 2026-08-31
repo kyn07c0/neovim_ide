@@ -147,12 +147,7 @@ return {
 
 		---Проверяет, является ли файл исполняемым
 		local function is_executable(path)
-			local stat = (vim.uv or vim.loop).fs_stat(path)
-			if not stat or stat.type ~= "file" then
-				return false
-			end
-			-- Проверяем executable биты (0o111 = 73)
-			return bit.band(stat.mode, 73) ~= 0
+			return vim.fn.executable(path) == 1
 		end
 
 		---Ищет исполняемые файлы в директории

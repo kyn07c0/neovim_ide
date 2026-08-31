@@ -4,20 +4,33 @@ return {
 	"lukas-reineke/indent-blankline.nvim",
 	event = "VeryLazy",
 	config = function()
-		-- Новый API indent-blankline v3
 		local ibl = require("ibl")
 
-		-- Опционально: переопределяем символы и подсветку
+		-- Цвета из палитры Kanagawa
+		local indent_fg = "#363646" -- sumiInk4: едва заметный на фоне #1F1F28
+		local scope_fg = "#7E9CD8" -- crystalBlue: подсветка текущего контекста
+
+		-- Настраиваем highlight-группы ДО вызова setup
+		vim.api.nvim_set_hl(0, "IblIndent", { fg = indent_fg, nocombine = true })
+		vim.api.nvim_set_hl(0, "IblScope", { fg = scope_fg, bold = true, nocombine = true })
+		vim.api.nvim_set_hl(0, "IblWhitespace", { fg = indent_fg, nocombine = true })
+
 		ibl.setup({
 			enabled = true,
 			indent = {
-				char = "▏", -- символ для обычных отступов
+				char = "▏",
 				highlight = "IblIndent",
 			},
 			scope = {
-				enabled = false, -- подсветка текущего контекста
-				char = "|", -- символ активного контекста
+				enabled = true, -- включаем подсветку текущего контекста
+				char = "▎",
 				highlight = "IblScope",
+				show_start = false, -- не рисуем линию на открывающей скобке
+				show_end = false, -- не рисуем линию на закрывающей скобке
+			},
+			whitespace = {
+				highlight = "IblWhitespace",
+				remove_blankline_trail = true,
 			},
 			exclude = {
 				filetypes = {
@@ -29,6 +42,7 @@ return {
 					"notify",
 					"noice",
 					"lspinfo",
+					"TelescopePrompt",
 				},
 				buftypes = {
 					"terminal",
@@ -38,19 +52,5 @@ return {
 				},
 			},
 		})
-
-		-- Мягкие цвета, чтобы полосы не перекрывали каретку
-		vim.api.nvim_set_hl(0, "IndentBlanklineChar", {
-			fg = "#3b3b4b",
-			blend = 30,
-		})
-		vim.api.nvim_set_hl(0, "IndentBlanklineContextChar", {
-			fg = "#7aa2f7",
-			bold = true,
-		})
-
-		-- Курсорная строка поверх полос (чтобы каретка была видна)
-		vim.opt.cursorline = true
-		vim.api.nvim_set_hl(0, "CursorLine", { bg = "#1f1f2e" })
 	end,
 }
