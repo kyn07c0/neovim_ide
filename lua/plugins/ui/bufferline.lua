@@ -12,6 +12,33 @@ return {
 	config = function()
 		local bufferline = require("bufferline")
 
+		-- Единая функция закрытия для крестика, ПКМ и СКМ
+		local function close_buffer(bufnum)
+			local buf_info = vim.fn.getbufinfo(bufnum)[1]
+			if buf_info and buf_info.changed == 1 then
+				vim.notify("Буфер имеет несохраненные изменения!", vim.log.levels.WARN)
+				return
+			end
+
+			-- Считаем listed-буферы, ЯВНО исключая закрываемый
+			local other_listed = 0
+			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+				if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted and buf ~= bufnum then
+					other_listed = other_listed + 1
+				end
+			end
+
+			-- Если есть другие буферы — просто закрываем текущий
+			if other_listed > 0 then
+				vim.cmd("silent! bdelete " .. bufnum)
+				return
+			end
+
+			-- Это был последний буфер — закрываем Neovim
+			vim.cmd("silent! bdelete " .. bufnum)
+			vim.cmd("qa")
+		end
+
 		bufferline.setup({
 			options = {
 				mode = "buffers", -- показываем буферы, а не табы
@@ -102,68 +129,13 @@ return {
 				sort_by = "insert_after_current", -- быстрая сортировка
 
 				-- Клавиши для закрытия
-				close_command = function(bufnum)
-					local buf_info = vim.fn.getbufinfo(bufnum)[1]
-					if buf_info and buf_info.changed == 1 then
-						vim.notify(
-							"Буфер имеет несохраненные изменения!",
-							vim.log.levels.WARN
-						)
-						return
-					end
-
-					-- Получаем все listed буферы ДО закрытия
-					local listed_buffers = {}
-					for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-						if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
-							table.insert(listed_buffers, buf)
-						end
-					end
-
-					-- Если закрывается НЕ последний буфер — просто закрываем
-					if #listed_buffers > 1 then
-						vim.cmd("silent! bdelete " .. bufnum)
-						vim.cmd("BufferLineCycleNext")
-						return
-					end
-
-					-- Если это ПОСЛЕДНИЙ буфер:
-					-- 1. Не удаляем его, а очищаем и делаем unlisted
-					vim.cmd("silent! bdelete " .. bufnum)
-
-					-- 2. Создаём новый пустой буфер и делаем его unlisted
-					local new_buf = vim.api.nvim_create_buf(false, true) -- no file, scratch
-					vim.api.nvim_set_current_buf(new_buf)
-					vim.bo[new_buf].buflisted = false
-					vim.bo[new_buf].buftype = "nofile"
-					vim.bo[new_buf].swapfile = false
-					vim.bo[new_buf].modifiable = false
-
-					-- 3. Показываем neo-tree
-					vim.cmd("Neotree show")
-
-					-- 4. Фокус на neo-tree
-					vim.defer_fn(function()
-						-- Найти окно neo-tree и перейти в него
-						for _, win in ipairs(vim.api.nvim_list_wins()) do
-							local buf = vim.api.nvim_win_get_buf(win)
-							if vim.bo[buf].filetype == "neo-tree" then
-								vim.api.nvim_set_current_win(win)
-								break
-							end
-						end
-					end, 50)
-				end,
+				close_command = close_buffer,
 
 				-- Правая клавиша мыши для закрытия
-				right_mouse_command = function(bufnum)
-					require("bufferline").close_command(bufnum)
-				end,
+				right_mouse_command = close_buffer,
 
 				-- Клавиша средней кнопки мыши для закрытия
-				middle_mouse_command = function(bufnum)
-					require("bufferline").close_command(bufnum)
-				end,
+				middle_mouse_command = close_buffer,
 			},
 		})
 

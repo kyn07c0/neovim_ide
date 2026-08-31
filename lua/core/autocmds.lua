@@ -296,4 +296,68 @@ vim.api.nvim_create_autocmd({ "FocusGained", "ShellCmdPost" }, {
 	desc = "Обновление neo-tree после git операций",
 })
 
+---------- УМНОЕ ЗАКРЫТИЕ (:q закрывает буфер, а не окно) ----------
+
+local function smart_quit(opts)
+	local current_buf = vim.api.nvim_get_current_buf()
+	local current_ft = vim.bo[current_buf].filetype
+
+	-- Если мы в neo-tree или другом служебном окне — :q работает как обычно
+	if current_ft == "neo-tree" or current_ft == "neo-tree-popup" or current_ft == "notify" then
+		vim.cmd(opts.bang and "q!" or "q")
+		return
+	end
+
+	local wins = vim.api.nvim_list_wins()
+	local normal_wins = 0
+
+	for _, win in ipairs(wins) do
+		local buf = vim.api.nvim_win_get_buf(win)
+		local ft = vim.bo[buf].filetype
+		if ft ~= "neo-tree" and ft ~= "neo-tree-popup" and ft ~= "notify" then
+			normal_wins = normal_wins + 1
+		end
+	end
+
+	-- Если есть несколько окон с файлами (сплиты) — :q работает как обычно (закрывает окно)
+	if normal_wins > 1 then
+		vim.cmd(opts.bang and "q!" or "q")
+		return
+	end
+
+	-- Проверяем несохранённые изменения
+	if vim.bo[current_buf].modified and not opts.bang then
+		vim.notify(
+			"Буфер имеет несохраненные изменения! Используйте :q!",
+			vim.log.levels.WARN
+		)
+		return
+	end
+
+	-- Считаем другие listed-буферы, явно исключая текущий
+	local other_listed = 0
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted and buf ~= current_buf then
+			other_listed = other_listed + 1
+		end
+	end
+
+	if other_listed > 0 then
+		-- Сначала переключаемся на другой буфер, затем удаляем текущий.
+		-- Это предотвращает "пустое" окно и захват пространства neo-tree.
+		vim.cmd("silent! bnext")
+		vim.cmd((opts.bang and "bdelete! " or "silent! bdelete ") .. current_buf)
+		return
+	end
+
+	-- Последний буфер — полный выход из Neovim
+	vim.cmd(opts.bang and "qa!" or "qa")
+end
+
+vim.api.nvim_create_user_command("Q", smart_quit, { bang = true, desc = "Smart quit: close buffer or exit Neovim" })
+
+-- Переопределяем :q → :Q и :q! → :Q! только в командной строке
+vim.cmd([[cnoreabbrev <expr> q (getcmdtype() == ':' && getcmdline() == 'q') ? 'Q' : 'q']])
+vim.cmd([[cnoreabbrev <expr> q! (getcmdtype() == ':' && getcmdline() == 'q!') ? 'Q!' : 'q!']])
+
 print("✓ Автокоманды загружены")
