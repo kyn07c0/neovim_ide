@@ -7,4 +7,6 @@ return {
 	require("plugins.ui.lualine"),
 	-- Folding с preview и treesitter-поддержкой
 	require("plugins.ui.ufo"),
+	-- Тема
+	require("plugins.ui.theme"),
 }

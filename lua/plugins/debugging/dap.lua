@@ -147,7 +147,7 @@ return {
 
 		---Проверяет, является ли файл исполняемым
 		local function is_executable(path)
-			local stat = vim.loop.fs_stat(path)
+			local stat = (vim.uv or vim.loop).fs_stat(path)
 			if not stat or stat.type ~= "file" then
 				return false
 			end
@@ -227,7 +227,7 @@ return {
 			local build_dir = get_build_dir(preset)
 
 			-- Проверяем существование build-директории
-			local stat = vim.loop.fs_stat(build_dir)
+			local stat = (vim.uv or vim.loop).fs_stat(build_dir)
 			if not stat or stat.type ~= "directory" then
 				vim.notify(
 					"Build directory not found: " .. build_dir .. "\nBuild first: <leader>cb",
@@ -252,7 +252,7 @@ return {
 			for _, target in ipairs(targets) do
 				local program_path = build_dir .. "/" .. target
 				-- Проверяем что файл существует
-				local fstat = vim.loop.fs_stat(program_path)
+				local fstat = (vim.uv or vim.loop).fs_stat(program_path)
 				if fstat and fstat.type == "file" then
 					table.insert(configs, {
 						name = string.format("Debug: %s [%s]", target, preset),

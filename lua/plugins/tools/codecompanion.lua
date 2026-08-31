@@ -61,7 +61,7 @@ return {
 						-- Автоматически находит корень по .codecompanion/
 						local root = vim.fn.getcwd()
 						for _ = 1, 15 do
-							if vim.loop.fs_stat(root .. "/.codecompanion") then
+							if (vim.uv or vim.loop).fs_stat(root .. "/.codecompanion") then
 								break
 							end
 							local parent = vim.fn.fnamemodify(root, ":h")
@@ -174,7 +174,7 @@ return {
 						".codecompanion",
 					}) do
 						local full_path = path .. "/" .. marker
-						if vim.loop.fs_stat(full_path) then
+						if (vim.uv or vim.loop).fs_stat(full_path) then
 							return path
 						end
 					end

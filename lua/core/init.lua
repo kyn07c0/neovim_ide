@@ -1,7 +1,6 @@
 -- Инициализация всех core модулей
 
 -- Загрузка основных настроек
-require("core.theme")
 require("core.options")
 require("core.keymaps")
 require("core.autocmds")
