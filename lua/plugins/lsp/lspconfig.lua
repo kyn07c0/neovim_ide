@@ -142,7 +142,7 @@ return {
 
 			-- Игнорируем build/, .git/, node_modules/ и т.д.
 			local ignore_dirs = { "build", ".git", "node_modules", "third_party", ".cache", "vcpkg_installed" }
-			local ignore_pattern = table.concat(
+			ignore_pattern = table.concat(
 				vim.tbl_map(function(d)
 					return "--ignore=" .. d
 				end, ignore_dirs),

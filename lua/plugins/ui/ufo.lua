@@ -53,7 +53,7 @@ return {
 			},
 
 			-- Улучшенный визуальный текст для сворачиваемых строк
-			fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
+			fold_virt_text_handler = function(virtText, lnum, endLnum, width)
 				local newVirtText = {}
 				local total_lines = vim.api.nvim_buf_line_count(0)
 
@@ -119,7 +119,6 @@ return {
 		-- Быстрое сворачивание под курсором
 		vim.keymap.set("n", "za", function()
 			-- Если fold открыт - закрыть, если закрыт - открыть
-			local line = vim.fn.line(".")
 			if ufo.inspectFoldedLinesUnderCursor() then
 				ufo.openFoldsExceptKinds()
 			else

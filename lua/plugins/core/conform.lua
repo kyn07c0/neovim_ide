@@ -106,7 +106,7 @@ return {
 				prepend_args = { "--style=file" },
 
 				-- Условие запуска
-				condition = function(ctx)
+				condition = function()
 					-- Не форматируем если нет .clang-format в корне
 					local root = vim.fn.findfile(".clang-format", ".;")
 					if root == "" then

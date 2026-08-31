@@ -1,6 +1,5 @@
 -- Глобальные клавиши (не связанные с плагинами)
 local map = vim.keymap.set
-local opts = { noremap = true, silent = true }
 
 ---------- ОСНОВНЫЕ КЛАВИШИ ----------
 

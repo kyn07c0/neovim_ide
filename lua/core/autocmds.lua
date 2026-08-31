@@ -202,7 +202,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
 vim.api.nvim_create_autocmd("BufWritePre", {
 	group = autocmd_group,
 	pattern = "*",
-	callback = function(args)
+	callback = function()
 		local dir = vim.fn.expand("<afile>:p:h")
 		if vim.fn.isdirectory(dir) == 0 then
 			vim.fn.mkdir(dir, "p")
