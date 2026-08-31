@@ -236,6 +236,8 @@ return {
 				},
 			})
 
+			vim.cmd.colorscheme("kanagawa-" .. theme_variant)
+
 			-- Гарантированно восстанавливаем фон после загрузки темы
 			vim.schedule(function()
 				vim.api.nvim_set_hl(0, "Normal", {
