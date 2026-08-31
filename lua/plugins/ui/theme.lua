@@ -238,6 +238,14 @@ return {
 
 			vim.cmd.colorscheme("kanagawa-" .. theme_variant)
 
+			-- Гарантированно восстанавливаем фон после загрузки темы
+			vim.schedule(function()
+				vim.api.nvim_set_hl(0, "Normal", {
+					fg = "#dcd7ba", -- кремовый цвет текста Kanagawa
+					bg = "#1f1f2e", -- фон Kanagawa Wave
+				})
+			end)
+
 			-- Простые команды для смены темы
 			vim.api.nvim_create_user_command("KanagawaWave", function()
 				vim.cmd.colorscheme("kanagawa-wave")
