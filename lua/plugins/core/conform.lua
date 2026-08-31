@@ -39,10 +39,6 @@ return {
 			-- Проверяем, есть ли форматтер
 			local formatters = require("conform").list_formatters(bufnr)
 			if #formatters == 0 then
-				vim.notify(
-					"Нет доступных форматтеров для этого файла",
-					vim.log.levels.WARN
-				)
 				return nil
 			end
 
@@ -79,7 +75,7 @@ return {
 			sh = { "shfmt" },
 			bash = { "shfmt" },
 			zsh = { "shfmt" },
-			dockerfile = { "hadolint" }, -- или просто "dockerfmt" если есть
+			dockerfile = { "dockerfmt" },
 			cmake = { "cmake_format" },
 
 			-- C / C++
