@@ -258,10 +258,12 @@ return {
 				local normal_hl = vim.api.nvim_get_hl(0, { name = "Normal" })
 
 				if normal_hl.bg == nil then
+					-- Восстанавливаем цвета темы
 					vim.api.nvim_set_hl(0, "Normal", { bg = "#1F1F28" })
-					vim.api.nvim_set_hl(0, "NormalFloat", { bg = "#1F1F28" })
+					vim.api.nvim_set_hl(0, "NormalFloat", { bg = "#1e1e2e" })
 					vim.notify("Прозрачность выключена", vim.log.levels.INFO)
 				else
+					-- Включаем прозрачность
 					vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 					vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 					vim.notify("Прозрачность включена", vim.log.levels.INFO)
