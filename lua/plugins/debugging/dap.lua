@@ -24,8 +24,8 @@ return {
 		-- ОТКЛЮЧЕНИЕ ВСТРОЕННОГО JUMP-TO-FRAME
 		-- ============================================
 
-		local ok, session_module = pcall(require, "dap.session")
-		if ok and session_module and session_module.jump_to_frame then
+		local ok_session, session_module = pcall(require, "dap.session")
+		if ok_session and session_module and session_module.jump_to_frame then
 			local orig_jump_to_frame = session_module.jump_to_frame
 
 			session_module.jump_to_frame = function(self, frame, preserve_focus_hint, stopped)
@@ -58,10 +58,10 @@ return {
 
 		-- Пробуем получить путь из mason-registry
 		local function get_codelldb_path()
-			local ok, registry = pcall(require, "mason-registry")
-			if ok then
-				local ok2, pkg = pcall(registry.get_package, registry, "codelldb")
-				if ok2 and pkg:is_installed() then
+			local ok_registry, registry = pcall(require, "mason-registry")
+			if ok_registry then
+				local ok_pkg, pkg = pcall(registry.get_package, registry, "codelldb")
+				if ok_pkg and pkg:is_installed() then
 					local install_path = pkg:get_install_path()
 					-- Проверяем несколько возможных путей
 					local paths = {
@@ -106,8 +106,8 @@ return {
 
 		-- Получает текущий preset из cmake-tools или из состояния
 		local function get_current_preset()
-			local ok, cmake = pcall(require, "cmake-tools")
-			if not ok then
+			local ok_cmake, cmake = pcall(require, "cmake-tools")
+			if not ok_cmake then
 				return "debug"
 			end
 
@@ -135,8 +135,8 @@ return {
 
 		---Получает директорию сборки
 		local function get_build_dir(preset)
-			local ok, cmake = pcall(require, "cmake-tools")
-			if ok and cmake.get_build_directory then
+			local ok_cmake2, cmake = pcall(require, "cmake-tools")
+			if ok_cmake2 and cmake.get_build_directory then
 				local dir = cmake.get_build_directory()
 				if dir and dir ~= "" then
 					return tostring(dir)
@@ -191,13 +191,13 @@ return {
 
 		---Получает launch targets из cmake-tools
 		local function get_cmake_targets()
-			local ok, cmake = pcall(require, "cmake-tools")
-			if not ok then
+			local ok_cmake3, cmake = pcall(require, "cmake-tools")
+			if not ok_cmake3 then
 				return nil
 			end
 
-			local ok2, targets = pcall(cmake.get_launch_targets)
-			if ok2 and targets and #targets > 0 then
+			local ok_targets, targets = pcall(cmake.get_launch_targets)
+			if ok_targets and targets and #targets > 0 then
 				-- Преобразуем в имена файлов (без пути)
 				local result = {}
 				for _, t in ipairs(targets) do

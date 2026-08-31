@@ -177,12 +177,12 @@ end, { desc = "Копировать путь к файлу" })
 
 -- Переключение относительных номеров
 map("n", "<leader>rn", function()
-	vim.opt.relativenumber = not vim.opt.relativenumber:get()
+	vim.opt.relativenumber = not vim.opt.relativenumber
 end, { desc = "Переключить относительные номера строк" })
 
 -- Переключение переноса строк
 map("n", "<leader>wr", function()
-	vim.opt.wrap = not vim.opt.wrap:get()
+	vim.opt.wrap = not vim.opt.wrap
 end, { desc = "Переключить перенос строк" })
 
 -- Очистка поиска
@@ -190,7 +190,7 @@ map("n", "<leader>nh", "<cmd>nohlsearch<cr>", { desc = "Очистить под�
 
 -- Показать непечатаемые символы
 map("n", "<leader>l", function()
-	vim.opt.list = not vim.opt.list:get()
+	vim.opt.list = not vim.opt.list
 end, { desc = "Показать/скрыть непечатаемые символы" })
 
 -- Показать диагностику
