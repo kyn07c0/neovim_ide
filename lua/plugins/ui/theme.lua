@@ -101,9 +101,9 @@ return {
 						-- ==========================================
 						-- NeoTree
 						-- ==========================================
-						NeoTreeNormal = { bg = theme.ui.bg_m3 },
-						NeoTreeNormalNC = { bg = theme.ui.bg_m3 },
-						NeoTreeFloatBorder = { fg = theme.ui.float.fg_border, bg = theme.ui.bg_m3 },
+						NeoTreeNormal = { bg = theme.ui.bg },
+						NeoTreeNormalNC = { bg = theme.ui.bg },
+						NeoTreeFloatBorder = { fg = separator_color, bg = theme.ui.bg_m1 },
 
 						-- ==========================================
 						-- BufferLine
@@ -237,14 +237,6 @@ return {
 			})
 
 			vim.cmd.colorscheme("kanagawa-" .. theme_variant)
-
-			-- Гарантированно восстанавливаем фон после загрузки темы
-			vim.schedule(function()
-				vim.api.nvim_set_hl(0, "Normal", {
-					fg = "#dcd7ba", -- кремовый цвет текста Kanagawa
-					bg = "#1f1f2e", -- фон Kanagawa Wave
-				})
-			end)
 
 			-- Простые команды для смены темы
 			vim.api.nvim_create_user_command("KanagawaWave", function()
